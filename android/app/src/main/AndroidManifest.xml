@@ -41,5 +41,8 @@
         <data android:scheme="exp+guardianresponder"/>
       </intent-filter>
     </activity>
+    <meta-data
+      android:name="com.google.android.geo.API_KEY"
+      android:value="AIzaSyAJjCD4TVrZk6u-OxFvk00OYpBqSMB_RVo"/>
   </application>
 </manifest>

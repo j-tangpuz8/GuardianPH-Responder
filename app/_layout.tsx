@@ -10,6 +10,7 @@ import {
   User,
 } from "@stream-io/video-react-native-sdk";
 import {OverlayProvider} from "stream-chat-expo";
+import {CheckInProvider} from "@/context/CheckInContext";
 const STREAM_KEY = process.env.EXPO_PUBLIC_STREAM_ACCESS_KEY;
 
 const InitialLayout = () => {
@@ -79,9 +80,11 @@ const RootLayout = () => {
   return (
     <AuthProvider>
       {/* <IncidentProvider> */}
-      <GestureHandlerRootView style={{flex: 1}}>
-        <InitialLayout />
-      </GestureHandlerRootView>
+      <CheckInProvider>
+        <GestureHandlerRootView style={{flex: 1}}>
+          <InitialLayout />
+        </GestureHandlerRootView>
+      </CheckInProvider>
       {/* </IncidentProvider> */}
     </AuthProvider>
   );
