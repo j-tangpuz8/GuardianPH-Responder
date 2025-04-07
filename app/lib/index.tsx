@@ -6,22 +6,30 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
-import React from "react";
+import React, {useEffect} from "react";
 import MapView, {PROVIDER_GOOGLE} from "react-native-maps";
 import {useCheckIn} from "@/context/CheckInContext";
+import {useAuth} from "@/context/AuthContext";
+import NewIncidentModal from "@/components/modals/new-incident-modal";
 
 export default function CheckInPage() {
   const {isOnline, setIsOnline} = useCheckIn();
+  const {onLogout} = useAuth();
 
   const handleClick = () => {
     setIsOnline(!isOnline);
   };
 
+  // useEffect(() => {
+  //   onLogout!();
+  // }, []);
+
   return (
     <View style={styles.container}>
+      <NewIncidentModal />
       {/* <MapView style={styles.map} provider={PROVIDER_GOOGLE} /> */}
 
-      <Modal transparent visible={true} animationType="fade">
+      {/* <Modal transparent visible={true} animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View
@@ -64,7 +72,7 @@ export default function CheckInPage() {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </Modal> */}
     </View>
   );
 }

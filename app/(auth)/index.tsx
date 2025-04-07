@@ -105,10 +105,10 @@ export default function LogIn() {
           <TouchableOpacity>
             <Text style={styles.linkText}>Forgot Password</Text>
           </TouchableOpacity>
-          <Text style={styles.linkDivider}>|</Text>
+          {/* <Text style={styles.linkDivider}>|</Text>
           <TouchableOpacity onPress={() => router.push("/register")}>
             <Text style={styles.linkText}>Register</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
     </KeyboardAvoidingView>
