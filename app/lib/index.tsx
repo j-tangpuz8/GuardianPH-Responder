@@ -11,25 +11,23 @@ import MapView, {PROVIDER_GOOGLE} from "react-native-maps";
 import {useCheckIn} from "@/context/CheckInContext";
 import {useAuth} from "@/context/AuthContext";
 import NewIncidentModal from "@/components/modals/new-incident-modal";
+import {useGetUserInfo} from "@/hooks/useGetUserInfo";
 
 export default function CheckInPage() {
   const {isOnline, setIsOnline} = useCheckIn();
-  const {onLogout} = useAuth();
+  const {authState} = useAuth();
+  const {userInfo, loading, error} = useGetUserInfo();
 
   const handleClick = () => {
     setIsOnline(!isOnline);
   };
 
-  // useEffect(() => {
-  //   onLogout!();
-  // }, []);
-
   return (
     <View style={styles.container}>
-      <NewIncidentModal />
+      {isOnline && <NewIncidentModal />}
       {/* <MapView style={styles.map} provider={PROVIDER_GOOGLE} /> */}
 
-      {/* <Modal transparent visible={true} animationType="fade">
+      <Modal transparent visible={true} animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View
@@ -43,9 +41,11 @@ export default function CheckInPage() {
                 source={require("@/assets/images/AMBU.png")}
                 style={{width: 80, height: 40, marginRight: 10}}
               />
-              <Text style={styles.title}>AMBU 123</Text>
+              <Text style={styles.title}>
+                {userInfo?.firstName} {userInfo?.lastName}
+              </Text>
             </View>
-            <Text style={styles.subtitle}>Bantay Mandaue Command Center</Text>
+            <Text style={styles.subtitle}>Bantay Mandaue Command Centerr</Text>
             <View style={styles.statusContainer}>
               <Text
                 style={[
@@ -72,7 +72,7 @@ export default function CheckInPage() {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal> */}
+      </Modal>
     </View>
   );
 }

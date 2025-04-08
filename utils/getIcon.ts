@@ -13,4 +13,22 @@ const getEmergencyIcon = (type: string) => {
   }
 };
 
-export default getEmergencyIcon;
+const getIncidentTypeColor = (type: string) => {
+  switch (type) {
+    case "Medical":
+      return "#3498db";
+    case "Fire":
+      return "#FF6B6B";
+    case "Police":
+      return "#4a4a4a";
+    case "General":
+      return "#2ecc71";
+    default:
+      return "#2ecc71";
+  }
+};
+
+export default {
+  getEmergencyIcon,
+  getIncidentTypeColor,
+};

@@ -5,40 +5,164 @@ import {
   Modal,
   Image,
   TouchableOpacity,
+  Animated,
 } from "react-native";
-import React from "react";
+import React, {useState, useEffect, useRef} from "react";
+import {useIncident} from "@/context/IncidentContext";
+import {useCheckIn} from "@/context/CheckInContext";
+import all from "@/utils/getIcon";
+import {useShakeAnimation} from "@/hooks/useShakeAnimation";
+import DenyIncidentModal from "./deny-incident-modal";
+import {useRouter} from "expo-router";
 
 export default function NewIncidentModal() {
+  const {incidentState, setCurrentIncident, clearIncident} = useIncident();
+  const {isOnline} = useCheckIn();
+  const [visible, setVisible] = useState(false);
+  const [currentIncident, setCurrentIncidentState] = useState<any>(null);
+  const shakeStyle = useShakeAnimation(visible);
+  const [showDenyModal, setShowDenyModal] = useState(false);
+  const [isDenying, setIsDenying] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isOnline || isDenying) {
+      setVisible(false);
+      return;
+    }
+
+    const fetchRecentIncident = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.EXPO_PUBLIC_API_URL}/incidents/responder/recent`
+        );
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            setVisible(false);
+            return;
+          }
+          throw new Error(`Server responded with ${response.status}`);
+        }
+
+        const data = await response.json();
+        setCurrentIncidentState(data);
+        setVisible(true);
+
+        if (setCurrentIncident) {
+          await setCurrentIncident({
+            emergencyType: data.incidentType,
+            channelId: data.channelId,
+            incidentId: data._id,
+            dispatcher: data.dispatcher,
+            timestamp: new Date(data.createdAt).getTime(),
+            location: {
+              lat: data.incidentDetails?.coordinates?.lat,
+              lon: data.incidentDetails?.coordinates?.lon,
+            },
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching recent incident:", error);
+        setVisible(false);
+      }
+    };
+
+    const intervalId = setInterval(fetchRecentIncident, 3000);
+    fetchRecentIncident();
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [isOnline, setCurrentIncident, currentIncident, isDenying]);
+
+  const handleDeny = async () => {
+    setIsDenying(true);
+    setVisible(false);
+    setShowDenyModal(true);
+  };
+
+  const handleRespond = async () => {
+    if (setCurrentIncident && currentIncident) {
+      await setCurrentIncident({
+        emergencyType: currentIncident.incidentType,
+        channelId: currentIncident.channelId,
+        incidentId: currentIncident._id,
+        dispatcher: currentIncident.dispatcher,
+        timestamp: new Date(currentIncident.createdAt).getTime(),
+        location: {
+          lat: currentIncident.incidentDetails?.coordinates?.lat,
+          lon: currentIncident.incidentDetails?.coordinates?.lon,
+        },
+      });
+      router.replace("/(responding)");
+      setVisible(false);
+    }
+  };
+
   return (
-    <Modal transparent visible={true} animationType="fade">
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <View style={styles.header}>
-            <Text style={styles.headerText}>NEW INCIDENT</Text>
+    <>
+      {!isDenying && visible && currentIncident && (
+        <Modal transparent visible={visible} animationType="fade">
+          <View style={styles.modalContainer}>
+            <Animated.View style={[styles.modalContent, shakeStyle]}>
+              <View style={styles.header}>
+                <Text style={styles.headerText}>NEW INCIDENT</Text>
+              </View>
+              <View
+                style={[
+                  styles.incidentDetails,
+                  {
+                    backgroundColor: all.getIncidentTypeColor(
+                      currentIncident?.incidentType
+                    ),
+                  },
+                ]}>
+                <Image
+                  source={all.getEmergencyIcon(currentIncident?.incidentType)}
+                  style={styles.icon}
+                />
+                <View>
+                  <Text style={styles.incidentType}>
+                    {currentIncident.incidentType?.toUpperCase()}
+                  </Text>
+                  <Text style={styles.incidentLocation}>
+                    {currentIncident.location?.address ||
+                      "Location unavailable"}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.buttonsContainer}>
+                <TouchableOpacity
+                  style={styles.respondButton}
+                  onPress={handleRespond}>
+                  <Text style={styles.buttonText}>Respond</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.denyButton}
+                  onPress={handleDeny}>
+                  <Text style={styles.buttonText}>Deny</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
           </View>
-          <View style={styles.incidentDetails}>
-            <Image
-              source={require("@/assets/images/Medical.png")}
-              style={styles.icon}
-            />
-            <View>
-              <Text style={styles.incidentType}>MEDICAL</Text>
-              <Text style={styles.incidentLocation}>
-                A. S. Fortuna St, Mandaue City
-              </Text>
-            </View>
-          </View>
-          <View style={styles.buttonsContainer}>
-            <TouchableOpacity style={styles.respondButton}>
-              <Text style={styles.buttonText}>Respond</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.denyButton}>
-              <Text style={styles.buttonText}>Deny</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
+        </Modal>
+      )}
+      <DenyIncidentModal
+        visible={showDenyModal}
+        onClose={() => {
+          setShowDenyModal(false);
+          setIsDenying(false);
+        }}
+        onConfirm={() => {
+          if (clearIncident) {
+            clearIncident();
+          }
+          setShowDenyModal(false);
+          setIsDenying(false);
+        }}
+      />
+    </>
   );
 }
 
@@ -70,12 +194,11 @@ const styles = StyleSheet.create({
   incidentDetails: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#3498db",
     padding: 15,
     width: "100%",
   },
   icon: {
-    width: 50,
+    width: 80,
     height: 50,
     marginRight: 10,
   },
