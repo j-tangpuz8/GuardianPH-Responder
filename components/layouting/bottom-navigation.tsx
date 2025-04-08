@@ -2,8 +2,8 @@ import {View, Text, StyleSheet, TouchableOpacity} from "react-native";
 import {FontAwesome5} from "@expo/vector-icons";
 import {useState} from "react";
 import {useRouter} from "expo-router";
-// import UpdateStatusModal from "@/components/modals/update-status-modal";
-// import MessagesDrawer from "@/components/drawers/messages-drawer";
+import UpdateStatusModal from "./update-status";
+import MessagesDrawer from "./chat-drawer";
 
 export default function BottomNavigation() {
   const router = useRouter();
@@ -41,7 +41,7 @@ export default function BottomNavigation() {
         </TouchableOpacity>
       </View>
 
-      {/* <UpdateStatusModal
+      <UpdateStatusModal
         visible={showStatusModal}
         onClose={() => setShowStatusModal(false)}
       />
@@ -49,7 +49,7 @@ export default function BottomNavigation() {
       <MessagesDrawer
         visible={showMessagesDrawer}
         onClose={() => setShowMessagesDrawer(false)}
-      /> */}
+      />
     </>
   );
 }

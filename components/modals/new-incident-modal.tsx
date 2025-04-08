@@ -14,6 +14,7 @@ import all from "@/utils/getIcon";
 import {useShakeAnimation} from "@/hooks/useShakeAnimation";
 import DenyIncidentModal from "./deny-incident-modal";
 import {useRouter} from "expo-router";
+import {getAddressFromCoords} from "@/utils/geocoding";
 
 export default function NewIncidentModal() {
   const {incidentState, setCurrentIncident, clearIncident} = useIncident();
@@ -46,9 +47,15 @@ export default function NewIncidentModal() {
         }
 
         const data = await response.json();
-        setCurrentIncidentState(data);
-        setVisible(true);
+        const lat = data.incidentDetails?.coordinates?.lat;
+        const lon = data.incidentDetails?.coordinates?.lon;
 
+        let address = "Location unavailable";
+        if (lat && lon) {
+          address = await getAddressFromCoords(lat, lon);
+        }
+
+        // Set the incident in context first
         if (setCurrentIncident) {
           await setCurrentIncident({
             emergencyType: data.incidentType,
@@ -57,11 +64,25 @@ export default function NewIncidentModal() {
             dispatcher: data.dispatcher,
             timestamp: new Date(data.createdAt).getTime(),
             location: {
-              lat: data.incidentDetails?.coordinates?.lat,
-              lon: data.incidentDetails?.coordinates?.lon,
+              lat,
+              lon,
+              address,
             },
           });
         }
+
+        // Then update local state with the same data structure
+        setCurrentIncidentState({
+          ...data,
+          location: {
+            address,
+            coordinates: {
+              lat,
+              lon,
+            },
+          },
+        });
+        setVisible(true);
       } catch (error) {
         console.error("Error fetching recent incident:", error);
         setVisible(false);
@@ -84,6 +105,14 @@ export default function NewIncidentModal() {
 
   const handleRespond = async () => {
     if (setCurrentIncident && currentIncident) {
+      const lat = currentIncident.incidentDetails?.coordinates?.lat;
+      const lon = currentIncident.incidentDetails?.coordinates?.lon;
+
+      let address = currentIncident.location?.address || "Location unavailable";
+      if (!address && lat && lon) {
+        address = await getAddressFromCoords(lat, lon);
+      }
+
       await setCurrentIncident({
         emergencyType: currentIncident.incidentType,
         channelId: currentIncident.channelId,
@@ -91,8 +120,9 @@ export default function NewIncidentModal() {
         dispatcher: currentIncident.dispatcher,
         timestamp: new Date(currentIncident.createdAt).getTime(),
         location: {
-          lat: currentIncident.incidentDetails?.coordinates?.lat,
-          lon: currentIncident.incidentDetails?.coordinates?.lon,
+          lat,
+          lon,
+          address,
         },
       });
       router.replace("/(responding)");
