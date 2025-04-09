@@ -14,7 +14,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bitcode": false
     },
     "android": {
       "config": {
@@ -40,7 +41,8 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.ACCESS_BACKGROUND_LOCATION"
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
       ],
       "package": "com.jolotangpuz.GuardianResponder"
     },
@@ -89,7 +91,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "119abfa3-2a64-4b0e-ae26-a3f793d00c68"
+        "projectId": "abe843c1-c68e-4f94-a097-e56d6306f4d7"
       }
     }
   }
