@@ -1,9 +1,14 @@
 import {View, Text, StyleSheet, TouchableOpacity, Image} from "react-native";
 import {useIncident} from "@/context/IncidentContext";
 import all from "@/utils/getIcon";
+import {useEffect} from "react";
 
 export default function RespondingHeader() {
   const {incidentState} = useIncident();
+
+  useEffect(() => {
+    console.log(JSON.stringify(incidentState, null, 2));
+  }, []);
 
   return (
     <View style={styles.main}>
@@ -45,7 +50,7 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 8,
-    paddingBottom: 0, // Remove bottom padding
+    paddingBottom: 0,
     backgroundColor: "#3498db",
   },
   mainContent: {
@@ -54,7 +59,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   icon: {
-    width: 60,
+    width: 55,
     height: 60,
     borderRadius: 100,
   },

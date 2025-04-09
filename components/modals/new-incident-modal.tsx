@@ -62,6 +62,7 @@ export default function NewIncidentModal() {
             channelId: data.channelId,
             incidentId: data._id,
             dispatcher: data.dispatcher,
+            lgu: data.lgu,
             timestamp: new Date(data.createdAt).getTime(),
             location: {
               lat,
@@ -118,6 +119,7 @@ export default function NewIncidentModal() {
         channelId: currentIncident.channelId,
         incidentId: currentIncident._id,
         dispatcher: currentIncident.dispatcher,
+        lgu: currentIncident.lgu,
         timestamp: new Date(currentIncident.createdAt).getTime(),
         location: {
           lat,

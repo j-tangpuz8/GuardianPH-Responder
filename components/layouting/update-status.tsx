@@ -9,6 +9,7 @@ import {
   Dimensions,
 } from "react-native";
 import React, {useEffect, useRef, useState} from "react";
+import CloseIncidentDrawer from "./close-incident-drawer";
 
 interface UpdateStatusModalProps {
   visible: boolean;
@@ -23,6 +24,7 @@ export default function UpdateStatusModal({
 }: UpdateStatusModalProps) {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [currentStatus, setCurrentStatus] = useState("onscene");
+  const [closeIncidentVisible, setCloseIncidentVisible] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -42,108 +44,120 @@ export default function UpdateStatusModal({
   if (!visible) return null;
 
   const handleStatusPress = (status: string) => {
-    setCurrentStatus(status);
-    // Add your status update logic here
+    if (status === "close") {
+      setCloseIncidentVisible(true);
+    } else {
+      setCurrentStatus(status);
+    }
   };
 
   return (
-    <TouchableWithoutFeedback onPress={onClose}>
-      <View style={styles.overlay}>
-        <TouchableWithoutFeedback>
-          <Animated.View
-            style={[
-              styles.drawer,
-              {
-                transform: [{translateY: slideAnim}],
-              },
-            ]}>
-            <View style={styles.handle} />
-            <Text style={styles.title}>UPDATE STATUS</Text>
-
-            <TouchableOpacity
+    <>
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.overlay}>
+          <TouchableWithoutFeedback>
+            <Animated.View
               style={[
-                styles.statusButton,
-                currentStatus === "onscene" && styles.activeButton,
-              ]}
-              onPress={() => handleStatusPress("onscene")}>
-              <Text
-                style={[
-                  styles.statusText,
-                  currentStatus === "onscene" && styles.activeText,
-                ]}>
-                ONSCENE
-              </Text>
-              {currentStatus === "onscene" && (
-                <Text style={[styles.statusSubtext, styles.activeText]}>
-                  (CURRENT)
-                </Text>
-              )}
-            </TouchableOpacity>
+                styles.drawer,
+                {
+                  transform: [{translateY: slideAnim}],
+                },
+              ]}>
+              <View style={styles.handle} />
+              <Text style={styles.title}>UPDATE STATUS</Text>
 
-            <TouchableOpacity
-              style={[
-                styles.statusButton,
-                currentStatus === "medical" && styles.activeButton,
-              ]}
-              onPress={() => handleStatusPress("medical")}>
-              <Text
+              <TouchableOpacity
                 style={[
-                  styles.statusText,
-                  currentStatus === "medical" && styles.activeText,
-                ]}>
-                MEDICAL FACILITY
-              </Text>
-              {currentStatus === "medical" && (
-                <Text style={[styles.statusSubtext, styles.activeText]}>
-                  (CURRENT)
+                  styles.statusButton,
+                  currentStatus === "onscene" && styles.activeButton,
+                ]}
+                onPress={() => handleStatusPress("onscene")}>
+                <Text
+                  style={[
+                    styles.statusText,
+                    currentStatus === "onscene" && styles.activeText,
+                  ]}>
+                  ONSCENE
                 </Text>
-              )}
-            </TouchableOpacity>
+                {currentStatus === "onscene" && (
+                  <Text style={[styles.statusSubtext, styles.activeText]}>
+                    (CURRENT)
+                  </Text>
+                )}
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.statusButton,
-                currentStatus === "return" && styles.activeButton,
-              ]}
-              onPress={() => handleStatusPress("return")}>
-              <Text
+              <TouchableOpacity
                 style={[
-                  styles.statusText,
-                  currentStatus === "return" && styles.activeText,
-                ]}>
-                RETURN TO BASE
-              </Text>
-              {currentStatus === "return" && (
-                <Text style={[styles.statusSubtext, styles.activeText]}>
-                  (CURRENT)
+                  styles.statusButton,
+                  currentStatus === "medical" && styles.activeButton,
+                ]}
+                onPress={() => handleStatusPress("medical")}>
+                <Text
+                  style={[
+                    styles.statusText,
+                    currentStatus === "medical" && styles.activeText,
+                  ]}>
+                  MEDICAL FACILITY
                 </Text>
-              )}
-            </TouchableOpacity>
+                {currentStatus === "medical" && (
+                  <Text style={[styles.statusSubtext, styles.activeText]}>
+                    (CURRENT)
+                  </Text>
+                )}
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.statusButton,
-                currentStatus === "close" && styles.activeButton,
-              ]}
-              onPress={() => handleStatusPress("close")}>
-              <Text
+              <TouchableOpacity
                 style={[
-                  styles.statusText,
-                  currentStatus === "close" && styles.activeText,
-                ]}>
-                CLOSE INCIDENT
-              </Text>
-
-              {currentStatus === "close" && (
-                <Text style={[styles.statusSubtext, styles.activeText]}>
-                  (CURRENT)
+                  styles.statusButton,
+                  currentStatus === "return" && styles.activeButton,
+                ]}
+                onPress={() => handleStatusPress("return")}>
+                <Text
+                  style={[
+                    styles.statusText,
+                    currentStatus === "return" && styles.activeText,
+                  ]}>
+                  RETURN TO BASE
                 </Text>
-              )}
-            </TouchableOpacity>
-          </Animated.View>
-        </TouchableWithoutFeedback>
-      </View>
-    </TouchableWithoutFeedback>
+                {currentStatus === "return" && (
+                  <Text style={[styles.statusSubtext, styles.activeText]}>
+                    (CURRENT)
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.statusButton,
+                  currentStatus === "close" && styles.activeButton,
+                ]}
+                onPress={() => handleStatusPress("close")}>
+                <Text
+                  style={[
+                    styles.statusText,
+                    currentStatus === "close" && styles.activeText,
+                  ]}>
+                  CLOSE INCIDENT
+                </Text>
+
+                {currentStatus === "close" && (
+                  <Text style={[styles.statusSubtext, styles.activeText]}>
+                    (CURRENT)
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+
+      {closeIncidentVisible && (
+        <CloseIncidentDrawer
+          visible={closeIncidentVisible}
+          onClose={() => setCloseIncidentVisible(false)}
+        />
+      )}
+    </>
   );
 }
 

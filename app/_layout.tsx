@@ -11,7 +11,8 @@ import {
 } from "@stream-io/video-react-native-sdk";
 import {OverlayProvider} from "stream-chat-expo";
 import {CheckInProvider} from "@/context/CheckInContext";
-import {IncidentProvider} from "@/context/IncidentContext";
+import {IncidentProvider, useIncident} from "@/context/IncidentContext";
+
 const STREAM_KEY = process.env.EXPO_PUBLIC_STREAM_ACCESS_KEY;
 
 const InitialLayout = () => {
@@ -19,6 +20,7 @@ const InitialLayout = () => {
   const segments = useSegments();
   const router = useRouter();
   const [client, setClient] = useState<StreamVideoClient | null>(null);
+  const {incidentState} = useIncident();
 
   useEffect(() => {
     if (!initialized) return;
@@ -32,6 +34,20 @@ const InitialLayout = () => {
       router.replace("/(auth)");
     }
   }, [authState, initialized]);
+
+  useEffect(() => {
+    if (!initialized || !authState?.authenticated) return;
+
+    const isMainLibPage = segments.length === 1 && segments[0] === "lib";
+    const isAuthPage = segments[0] === "(auth)";
+
+    if (!isMainLibPage && !isAuthPage) {
+      if (!incidentState || Object.keys(incidentState).length === 0) {
+        console.log("No active incident, redirecting to home");
+        router.replace("/lib");
+      }
+    }
+  }, [incidentState, segments, initialized, authState]);
 
   useEffect(() => {
     if (authState?.authenticated && authState.token) {
@@ -49,19 +65,6 @@ const InitialLayout = () => {
       }
     }
   }, [authState]);
-
-  // useEffect(() => {
-  //   if (incidentState) {
-  //     router.replace({
-  //       pathname: "/landing/(room)/RoomVerification",
-  //       params: {
-  //         emergencyType: incidentState.emergencyType,
-  //         channelId: incidentState.channelId,
-  //         incidentId: incidentState.incidentId,
-  //       },
-  //     });
-  //   }
-  // }, []);
 
   return (
     <>

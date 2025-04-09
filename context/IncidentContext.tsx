@@ -5,7 +5,28 @@ interface IncidentData {
   emergencyType: string;
   channelId: string;
   incidentId: string;
-  dispatcher?: string;
+  dispatcher?: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    address?: string;
+    barangay?: string;
+    city?: string;
+    role: string;
+  };
+  lgu?: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    address?: string;
+    barangay?: string;
+    city?: string;
+    role: string;
+  };
   timestamp: number;
   location?: {
     lat?: number;
