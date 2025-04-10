@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import React, {useEffect, useRef, useState} from "react";
 import CloseIncidentDrawer from "./close-incident-drawer";
+import MedicalFacilityDrawer from "./hospitals-drawer";
 
 interface UpdateStatusModalProps {
   visible: boolean;
@@ -23,8 +24,10 @@ export default function UpdateStatusModal({
   onClose,
 }: UpdateStatusModalProps) {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const [currentStatus, setCurrentStatus] = useState("onscene");
-  const [closeIncidentVisible, setCloseIncidentVisible] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState<string>("onscene");
+  const [closeIncidentVisible, setCloseIncidentVisible] =
+    useState<boolean>(false);
+  const [showHospitals, setShowHospitals] = useState<boolean>(false);
 
   useEffect(() => {
     if (visible) {
@@ -46,6 +49,9 @@ export default function UpdateStatusModal({
   const handleStatusPress = (status: string) => {
     if (status === "close") {
       setCloseIncidentVisible(true);
+    } else if (status === "medical") {
+      setCurrentStatus(status);
+      setShowHospitals(true);
     } else {
       setCurrentStatus(status);
     }
@@ -155,6 +161,13 @@ export default function UpdateStatusModal({
         <CloseIncidentDrawer
           visible={closeIncidentVisible}
           onClose={() => setCloseIncidentVisible(false)}
+        />
+      )}
+      {showHospitals && (
+        <MedicalFacilityDrawer
+          visible={showHospitals}
+          onClose={() => setShowHospitals(false)}
+          onSelectFacility={() => setCurrentStatus("medical")}
         />
       )}
     </>
