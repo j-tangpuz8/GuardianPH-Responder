@@ -11,6 +11,8 @@ import {
 import React, {useEffect, useRef, useState} from "react";
 import CloseIncidentDrawer from "./close-incident-drawer";
 import MedicalFacilityDrawer from "./hospitals-drawer";
+import {updateResponderStatus} from "@/api/incidents/useUpdateIncident";
+import {useIncident} from "@/context/IncidentContext";
 
 interface UpdateStatusModalProps {
   visible: boolean;
@@ -23,11 +25,34 @@ export default function UpdateStatusModal({
   visible,
   onClose,
 }: UpdateStatusModalProps) {
+  // In the UpdateStatusModal component
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const [currentStatus, setCurrentStatus] = useState<string>("onscene");
+  // Initialize with null instead of empty string
+  const [currentStatus, setCurrentStatus] = useState<string | null>(null);
   const [closeIncidentVisible, setCloseIncidentVisible] =
     useState<boolean>(false);
   const [showHospitals, setShowHospitals] = useState<boolean>(false);
+  const {incidentState, setCurrentIncident} = useIncident();
+
+  useEffect(() => {
+    // Initialize the current status based on the incident state
+    if (incidentState?.responderStatus) {
+      console.log(
+        "Modal: Current responder status:",
+        incidentState.responderStatus
+      );
+      const statusMapping: {[key: string]: string} = {
+        enroute: "enroute",
+        onscene: "onscene",
+        medicalFacility: "medical",
+        rtb: "return",
+      };
+      const mappedStatus =
+        statusMapping[incidentState.responderStatus] || "enroute";
+      console.log("Modal: Setting status to", mappedStatus);
+      setCurrentStatus(mappedStatus);
+    }
+  }, [incidentState?.responderStatus]);
 
   useEffect(() => {
     if (visible) {
@@ -46,14 +71,40 @@ export default function UpdateStatusModal({
 
   if (!visible) return null;
 
-  const handleStatusPress = (status: string) => {
-    if (status === "close") {
-      setCloseIncidentVisible(true);
-    } else if (status === "medical") {
-      setCurrentStatus(status);
-      setShowHospitals(true);
-    } else {
-      setCurrentStatus(status);
+  const handleStatusPress = async (status: string) => {
+    if (!incidentState?.incidentId || !setCurrentIncident) return;
+
+    try {
+      if (status === "close") {
+        setCloseIncidentVisible(true);
+      } else if (status === "medical") {
+        await updateResponderStatus(
+          incidentState.incidentId,
+          "medicalFacility"
+        );
+        setCurrentStatus(status);
+        await setCurrentIncident({
+          ...incidentState,
+          responderStatus: "medicalFacility",
+        });
+        setShowHospitals(true);
+      } else {
+        const statusMap: {[key: string]: any} = {
+          onscene: "onscene",
+          return: "rtb",
+        };
+        await updateResponderStatus(
+          incidentState.incidentId,
+          statusMap[status]
+        );
+        setCurrentStatus(status);
+        await setCurrentIncident({
+          ...incidentState,
+          responderStatus: statusMap[status],
+        });
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
     }
   };
 

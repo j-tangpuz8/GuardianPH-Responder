@@ -27,6 +27,7 @@ interface IncidentData {
     city?: string;
     role: string;
   };
+  responderStatus?: "enroute" | "onscene" | "medicalFacility" | "rtb" | "close";
   timestamp: number;
   location?: {
     lat?: number;

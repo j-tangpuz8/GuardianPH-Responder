@@ -32,3 +32,12 @@ export const assignResponder = async (
     responderCoordinates: coordinates,
   });
 };
+
+export const updateResponderStatus = async (
+  incidentId: string,
+  status: "enroute" | "onscene" | "medicalFacility" | "rtb" | "close"
+): Promise<any> => {
+  return updateIncident(incidentId, {
+    responderStatus: status,
+  });
+};
