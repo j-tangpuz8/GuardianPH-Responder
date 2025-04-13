@@ -17,6 +17,7 @@ import {
 } from "stream-chat-expo";
 import {Channel as ChannelType} from "stream-chat";
 import {useAuth} from "../../context/AuthContext";
+import {useIncident} from "@/context/IncidentContext";
 
 const STREAM_KEY = process.env.EXPO_PUBLIC_STREAM_ACCESS_KEY;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -24,22 +25,21 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
 interface MessagesDrawerProps {
   visible: boolean;
   onClose: () => void;
-  channelId?: string;
 }
 
 export default function MessagesDrawer({
   visible,
   onClose,
-  channelId = "fad-call",
 }: MessagesDrawerProps) {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [channel, setChannel] = useState<
     ChannelType<DefaultStreamChatGenerics> | undefined
   >(undefined);
   const {authState} = useAuth();
+  const {incidentState} = useIncident();
 
-  // Create client instance outside of effects
   const chatClient = useRef(StreamChat.getInstance(STREAM_KEY!)).current;
+  const channelId = incidentState?.incidentId.substring(5, 9);
 
   useEffect(() => {
     const connectToChannel = async () => {
@@ -48,7 +48,7 @@ export default function MessagesDrawer({
           await chatClient.connectUser(
             {
               id: authState?.user_id!,
-              name: "test user",
+              name: "Responder",
               image: "https://getstream.io/random_svg/?name=test",
             },
             authState?.token!

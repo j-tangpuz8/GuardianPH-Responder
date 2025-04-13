@@ -15,19 +15,23 @@ import {useShakeAnimation} from "@/hooks/useShakeAnimation";
 import DenyIncidentModal from "./deny-incident-modal";
 import {useRouter} from "expo-router";
 import {getAddressFromCoords} from "@/utils/geocoding";
+import {assignResponder} from "@/api/incidents/useUpdateIncident";
+import {useAuth} from "@/context/AuthContext";
 
 export default function NewIncidentModal() {
   const {incidentState, setCurrentIncident, clearIncident} = useIncident();
+  const {authState} = useAuth();
   const {isOnline} = useCheckIn();
   const [visible, setVisible] = useState(false);
   const [currentIncident, setCurrentIncidentState] = useState<any>(null);
   const shakeStyle = useShakeAnimation(visible);
   const [showDenyModal, setShowDenyModal] = useState(false);
   const [isDenying, setIsDenying] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    if (!isOnline || isDenying) {
+    if (!isOnline || isDenying || isAssigning) {
       setVisible(false);
       return;
     }
@@ -55,7 +59,7 @@ export default function NewIncidentModal() {
           address = await getAddressFromCoords(lat, lon);
         }
 
-        // Set the incident in context first
+        // context state
         if (setCurrentIncident) {
           await setCurrentIncident({
             emergencyType: data.incidentType,
@@ -71,8 +75,7 @@ export default function NewIncidentModal() {
             },
           });
         }
-
-        // Then update local state with the same data structure
+        // local state
         setCurrentIncidentState({
           ...data,
           location: {
@@ -105,30 +108,40 @@ export default function NewIncidentModal() {
   };
 
   const handleRespond = async () => {
-    if (setCurrentIncident && currentIncident) {
-      const lat = currentIncident.incidentDetails?.coordinates?.lat;
-      const lon = currentIncident.incidentDetails?.coordinates?.lon;
+    if (setCurrentIncident && currentIncident && authState?.user_id) {
+      try {
+        setIsAssigning(true);
 
-      let address = currentIncident.location?.address || "Location unavailable";
-      if (!address && lat && lon) {
-        address = await getAddressFromCoords(lat, lon);
+        await assignResponder(currentIncident._id, authState?.user_id);
+        const lat = currentIncident.incidentDetails?.coordinates?.lat;
+        const lon = currentIncident.incidentDetails?.coordinates?.lon;
+
+        let address =
+          currentIncident.location?.address || "Location unavailable";
+        if (!address && lat && lon) {
+          address = await getAddressFromCoords(lat, lon);
+        }
+
+        await setCurrentIncident({
+          emergencyType: currentIncident.incidentType,
+          channelId: currentIncident.channelId,
+          incidentId: currentIncident._id,
+          dispatcher: currentIncident.dispatcher,
+          lgu: currentIncident.lgu,
+          timestamp: new Date(currentIncident.createdAt).getTime(),
+          location: {
+            lat,
+            lon,
+            address,
+          },
+        });
+        router.replace("/(responding)");
+        setVisible(false);
+      } catch (error) {
+        console.error("error assining responder: ", error);
+      } finally {
+        setIsAssigning(false);
       }
-
-      await setCurrentIncident({
-        emergencyType: currentIncident.incidentType,
-        channelId: currentIncident.channelId,
-        incidentId: currentIncident._id,
-        dispatcher: currentIncident.dispatcher,
-        lgu: currentIncident.lgu,
-        timestamp: new Date(currentIncident.createdAt).getTime(),
-        location: {
-          lat,
-          lon,
-          address,
-        },
-      });
-      router.replace("/(responding)");
-      setVisible(false);
     }
   };
 
