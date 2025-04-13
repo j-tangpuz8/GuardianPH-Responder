@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Animated,
 } from "react-native";
-import React, {useState, useEffect, useRef} from "react";
+import React, {useState, useEffect} from "react";
 import {useIncident} from "@/context/IncidentContext";
 import {useCheckIn} from "@/context/CheckInContext";
 import all from "@/utils/getIcon";
@@ -16,12 +16,15 @@ import DenyIncidentModal from "./deny-incident-modal";
 import {useRouter} from "expo-router";
 import {getAddressFromCoords} from "@/utils/geocoding";
 import {assignResponder} from "@/api/incidents/useUpdateIncident";
+import {fetchRecentIncident} from "@/api/incidents/useFetchIncident";
 import {useAuth} from "@/context/AuthContext";
+import useLocation from "@/hooks/useLocation";
 
 export default function NewIncidentModal() {
   const {incidentState, setCurrentIncident, clearIncident} = useIncident();
   const {authState} = useAuth();
   const {isOnline} = useCheckIn();
+  const {getUserLocation} = useLocation();
   const [visible, setVisible] = useState(false);
   const [currentIncident, setCurrentIncidentState] = useState<any>(null);
   const shakeStyle = useShakeAnimation(visible);
@@ -36,21 +39,15 @@ export default function NewIncidentModal() {
       return;
     }
 
-    const fetchRecentIncident = async () => {
+    const fetchIncident = async () => {
       try {
-        const response = await fetch(
-          `${process.env.EXPO_PUBLIC_API_URL}/incidents/responder/recent`
-        );
+        const data = await fetchRecentIncident();
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            setVisible(false);
-            return;
-          }
-          throw new Error(`Server responded with ${response.status}`);
+        if (!data) {
+          setVisible(false);
+          return;
         }
 
-        const data = await response.json();
         const lat = data.incidentDetails?.coordinates?.lat;
         const lon = data.incidentDetails?.coordinates?.lon;
 
@@ -63,14 +60,32 @@ export default function NewIncidentModal() {
         if (setCurrentIncident) {
           await setCurrentIncident({
             emergencyType: data.incidentType,
-            channelId: data.channelId,
+            channelId: data.channelId || "test-default",
             incidentId: data._id,
-            dispatcher: data.dispatcher,
-            lgu: data.lgu,
+            dispatcher: data.dispatcher
+              ? {
+                  _id: data.dispatcher,
+                  firstName: "",
+                  lastName: "",
+                  email: "",
+                  phone: "",
+                  role: "dispatcher",
+                }
+              : undefined,
+            lgu: data.lgu
+              ? {
+                  _id: data.lgu,
+                  firstName: "",
+                  lastName: "",
+                  email: "",
+                  phone: "",
+                  role: "lgu",
+                }
+              : undefined,
             timestamp: new Date(data.createdAt).getTime(),
             location: {
-              lat,
-              lon,
+              lat: lat || undefined,
+              lon: lon || undefined,
               address,
             },
           });
@@ -94,12 +109,12 @@ export default function NewIncidentModal() {
     };
 
     const intervalId = setInterval(fetchRecentIncident, 3000);
-    fetchRecentIncident();
+    fetchIncident();
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [isOnline, setCurrentIncident, currentIncident, isDenying]);
+  }, [isOnline, setCurrentIncident, isDenying, isAssigning]);
 
   const handleDeny = async () => {
     setIsDenying(true);
@@ -112,7 +127,18 @@ export default function NewIncidentModal() {
       try {
         setIsAssigning(true);
 
-        await assignResponder(currentIncident._id, authState?.user_id);
+        // responders location
+        const myLocation = await getUserLocation();
+        if (!myLocation) {
+          throw new Error("error getting responders location");
+        }
+
+        await assignResponder(currentIncident._id, authState?.user_id, {
+          lat: myLocation?.latitude,
+          lon: myLocation?.longitude,
+        });
+
+        // volunterr's location
         const lat = currentIncident.incidentDetails?.coordinates?.lat;
         const lon = currentIncident.incidentDetails?.coordinates?.lon;
 

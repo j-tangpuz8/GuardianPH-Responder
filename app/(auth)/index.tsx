@@ -10,6 +10,8 @@ import {
   StatusBar,
   Alert,
   Image,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import React, {useState} from "react";
 import Spinner from "react-native-loading-spinner-overlay";
@@ -20,10 +22,11 @@ export default function LogIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const {onLogin, onLogout, onRegister} = useAuth();
+  const {onLogin} = useAuth();
   const router = useRouter();
 
   const logIn = async () => {
+    Keyboard.dismiss();
     if (!email || !password) {
       Alert.alert("Error", "Email and password are required");
       return;
@@ -54,64 +57,70 @@ export default function LogIn() {
     }
   };
 
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}>
-      <StatusBar
-        hidden={false}
-        barStyle="default"
-        backgroundColor="transparent"
-        translucent
-      />
-      <Spinner visible={loading} />
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+  };
 
-      <View style={styles.topHalf}>
-        <View style={styles.logoContainer}>
-          <Image
-            source={require("@/assets/images/banner-icon.png")}
-            style={styles.logoImage}
-          />
-          <View>
-            <Text style={styles.header}>GuardianPH V3</Text>
-            <Text style={styles.subHeader}>RESPONDER</Text>
+  return (
+    <TouchableWithoutFeedback onPress={dismissKeyboard}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}>
+        <StatusBar
+          hidden={false}
+          barStyle="default"
+          backgroundColor="transparent"
+          translucent
+        />
+        <Spinner visible={loading} />
+
+        <View style={styles.topHalf}>
+          <View style={styles.logoContainer}>
+            <Image
+              source={require("@/assets/images/banner-icon.png")}
+              style={styles.logoImage}
+            />
+            <View>
+              <Text style={styles.header}>GuardianPH V3</Text>
+              <Text style={styles.subHeader}>RESPONDER</Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      <View style={styles.formContainer}>
-        <TextInput
-          autoCapitalize="none"
-          placeholder="Username"
-          value={email}
-          onChangeText={setEmail}
-          style={styles.textField}
-          placeholderTextColor="gray"
-        />
-        <TextInput
-          value={password}
-          placeholder="Password"
-          onChangeText={setPassword}
-          style={styles.textField}
-          placeholderTextColor="gray"
-          secureTextEntry={true}
-        />
+        <View style={styles.formContainer}>
+          <TextInput
+            autoCapitalize="none"
+            placeholder="Username"
+            value={email}
+            onChangeText={setEmail}
+            style={styles.textField}
+            placeholderTextColor="gray"
+          />
+          <TextInput
+            value={password}
+            placeholder="Password"
+            onChangeText={setPassword}
+            style={styles.textField}
+            placeholderTextColor="gray"
+            secureTextEntry={true}
+          />
 
-        <TouchableOpacity onPress={logIn} style={styles.buttonLogin}>
-          <Text style={styles.buttonText}>Login</Text>
-        </TouchableOpacity>
-
-        <View style={styles.forgotPasswordContainer}>
-          <TouchableOpacity>
-            <Text style={styles.linkText}>Forgot Password</Text>
+          <TouchableOpacity onPress={logIn} style={styles.buttonLogin}>
+            <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
-          {/* <Text style={styles.linkDivider}>|</Text>
+
+          <View style={styles.forgotPasswordContainer}>
+            <TouchableOpacity>
+              <Text style={styles.linkText}>Forgot Password</Text>
+            </TouchableOpacity>
+            {/* <Text style={styles.linkDivider}>|</Text>
           <TouchableOpacity onPress={() => router.push("/register")}>
             <Text style={styles.linkText}>Register</Text>
           </TouchableOpacity> */}
+          </View>
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 

@@ -35,7 +35,7 @@ export default function AudioCall() {
       }
 
       try {
-        const callId = `fad-call-${Date.now()}`;
+        const callId = "fad-call";
         const call = client.call("default", callId);
         await call.getOrCreate({
           data: {

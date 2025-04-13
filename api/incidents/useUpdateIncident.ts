@@ -1,5 +1,3 @@
-import {Incident} from "@/types/incident";
-
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export const updateIncident = async (id: string, data: any): Promise<any> => {
@@ -25,10 +23,12 @@ export const updateIncident = async (id: string, data: any): Promise<any> => {
 
 export const assignResponder = async (
   incidentId: string,
-  responderId: string
+  responderId: string,
+  coordinates: {lat: number; lon: number}
 ): Promise<any> => {
   return updateIncident(incidentId, {
     responder: responderId,
     isAcceptedResponder: true,
+    responderCoordinates: coordinates,
   });
 };
