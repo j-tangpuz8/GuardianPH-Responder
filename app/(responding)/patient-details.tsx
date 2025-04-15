@@ -10,9 +10,11 @@ import {
 import React, {useState} from "react";
 import {useIncident} from "@/context/IncidentContext";
 import {Ionicons} from "@expo/vector-icons";
+import {useRouter} from "expo-router";
 
 export default function PatientDetailsForm() {
   const {incidentState} = useIncident();
+  const router = useRouter();
   const [patientData, setPatientData] = useState({
     firstName: "",
     lastName: "",
@@ -52,7 +54,7 @@ export default function PatientDetailsForm() {
     hour12: false,
   });
 
-  // Custom checkbox component using Pressable and Ionicons
+  /// custom checkbox
   const CustomCheckbox = ({
     value,
     onValueChange,
@@ -79,6 +81,14 @@ export default function PatientDetailsForm() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerText}>PATIENT DETAILS</Text>
+        <TouchableOpacity style={styles.closeButton}>
+          <Ionicons
+            name="close-circle"
+            size={24}
+            color="white"
+            onPress={() => router.replace("/")}
+          />
+        </TouchableOpacity>
       </View>
 
       {/* Location and Time */}
@@ -364,6 +374,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   spacer: {
-    height: 50,
+    height: 20,
+  },
+  closeButton: {
+    position: "absolute",
+    right: 10,
+    top: 8,
   },
 });

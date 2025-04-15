@@ -21,10 +21,6 @@ export default function RespondingHeader() {
     }
   }, [incidentState]);
 
-  useEffect(() => {
-    console.log("Full incident state:", incidentState);
-  }, []);
-
   const getStatusText = (status: string | null | undefined) => {
     const statusMap: {[key: string]: string} = {
       enroute: "ENROUTE",
@@ -44,23 +40,40 @@ export default function RespondingHeader() {
     router.push("/(responding)/vital-signs");
   };
 
+  const handleVitalSignsPress2 = () => {
+    router.push("/(responding)/handover-vital-signs");
+  };
+
   const renderBottomContainer = () => {
     const status = incidentState?.responderStatus || "enroute";
 
     if (status === "onscene") {
       return (
-        <TouchableOpacity
-          style={styles.actionContainer}
-          onPress={handlePatientDetailsPress}>
-          <Text style={styles.actionText}>PATIENT DETAILS</Text>
-        </TouchableOpacity>
+        <View
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-evenly",
+            gap: 2,
+          }}>
+          <TouchableOpacity
+            style={styles.actionContainer}
+            onPress={handlePatientDetailsPress}>
+            <Text style={styles.actionText}>PATIENT DETAILS</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionContainer}
+            onPress={handleVitalSignsPress}>
+            <Text style={styles.actionText}>VITAL SIGNS</Text>
+          </TouchableOpacity>
+        </View>
       );
     } else if (status === "medicalFacility") {
       return (
         <TouchableOpacity
-          style={styles.actionContainer}
-          onPress={handleVitalSignsPress}>
-          <Text style={styles.actionText}>VITAL SIGNS</Text>
+          style={styles.actionContainer2}
+          onPress={handleVitalSignsPress2}>
+          <Text style={styles.actionText}>CONFIRM VITAL SIGNS</Text>
         </TouchableOpacity>
       );
     } else {
@@ -168,6 +181,13 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   actionContainer: {
+    backgroundColor: "#FF6B6B",
+    padding: 10,
+    alignItems: "center",
+    width: "50%",
+    justifyContent: "center",
+  },
+  actionContainer2: {
     backgroundColor: "#FF6B6B",
     padding: 10,
     alignItems: "center",

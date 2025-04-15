@@ -9,7 +9,9 @@ export default function RespondingLayout() {
   const pathname = usePathname();
   const isCallScreen = pathname.includes("call");
   const isDetailScreen =
-    pathname.includes("patient-details") || pathname.includes("vital-signs");
+    pathname.includes("patient-details") ||
+    pathname.includes("vital-signs") ||
+    pathname.includes("handover-vital-signs");
   const calls = useCalls();
 
   return (
@@ -42,6 +44,13 @@ export default function RespondingLayout() {
         />
         <Stack.Screen
           name="vital-signs"
+          options={{
+            headerShown: true,
+            title: "Vital Signs",
+          }}
+        />
+        <Stack.Screen
+          name="handover-vital-signs"
           options={{
             headerShown: true,
             title: "Vital Signs",

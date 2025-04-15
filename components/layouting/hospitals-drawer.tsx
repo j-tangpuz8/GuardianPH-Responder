@@ -7,14 +7,17 @@ import {
   Animated,
   Dimensions,
   Image,
+  ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import React, {useEffect, useRef} from "react";
 import {useIncident} from "@/context/IncidentContext";
+import {useNearbyHospitals} from "@/hooks/useGetHospitals";
 
 interface MedicalFacilityDrawerProps {
   visible: boolean;
   onClose: () => void;
-  onSelectFacility: () => void;
+  onSelectFacility: (hospitalId?: string, hospitalName?: string) => void;
 }
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -26,6 +29,10 @@ export default function MedicalFacilityDrawer({
 }: MedicalFacilityDrawerProps) {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const {incidentState} = useIncident();
+  const {hospitals, loading, error, refreshHospitals} = useNearbyHospitals({
+    radius: 10000,
+    limit: 3,
+  });
 
   useEffect(() => {
     if (visible) {
@@ -33,6 +40,7 @@ export default function MedicalFacilityDrawer({
         toValue: 0,
         useNativeDriver: true,
       }).start();
+      refreshHospitals();
     } else {
       Animated.timing(slideAnim, {
         toValue: SCREEN_HEIGHT,
@@ -44,9 +52,31 @@ export default function MedicalFacilityDrawer({
 
   if (!visible) return null;
 
-  const handleSelectHospital = () => {
-    onSelectFacility();
+  const handleSelectHospital = (hospitalId: string, hospitalName: string) => {
+    onSelectFacility(hospitalId, hospitalName);
     onClose();
+  };
+
+  const formatDistance = (meters: number) => {
+    if (meters < 1000) {
+      return `${meters}m`;
+    } else {
+      return `${(meters / 1000).toFixed(1)}km`;
+    }
+  };
+
+  const calculateETA = (meters: number) => {
+    const minutes = Math.ceil(meters / 500);
+
+    if (minutes < 1) {
+      return "< 1min";
+    } else if (minutes < 60) {
+      return `${minutes}min`;
+    } else {
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return `${hours}h ${remainingMinutes}min`;
+    }
   };
 
   return (
@@ -67,35 +97,85 @@ export default function MedicalFacilityDrawer({
               </TouchableOpacity>
             </View>
 
-            {/* Hospital List */}
-            {[1, 2, 3, 4, 5].map((_, index) => (
-              <View key={index} style={styles.hospitalItem}>
-                <View style={styles.hospitalInfo}>
-                  {/* <View style={styles.cameraIcon}>
-                    <Image
-                      source={require("@/assets/images/video-camera.png")}
-                      style={styles.cameraImage}
-                    />
-                  </View> */}
-                  <View style={styles.hospitalDetails}>
-                    <Text style={styles.hospitalName}>XYz Hospital</Text>
-                    <View style={styles.hospitalMetrics}>
-                      <Text style={styles.etaText}>
-                        ETA <Text style={styles.metricValue}>4min</Text>
-                      </Text>
-                      <Text style={styles.disText}>
-                        DIS <Text style={styles.metricValue}>600m</Text>
-                      </Text>
-                    </View>
-                  </View>
+            <ScrollView
+              style={styles.scrollContainer}
+              contentContainerStyle={styles.scrollContentContainer}
+              showsVerticalScrollIndicator={true}
+              bounces={true}>
+              {/* Loading State */}
+              {loading && (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#3498db" />
+                  <Text style={styles.loadingText}>
+                    Finding nearby hospitals...
+                  </Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.goButton}
-                  onPress={handleSelectHospital}>
-                  <Text style={styles.goButtonText}>GO</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
+              )}
+
+              {/* Rest of the content */}
+              {/* Error State */}
+              {error && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>Error: {error}</Text>
+                  <TouchableOpacity
+                    style={styles.retryButton}
+                    onPress={refreshHospitals}>
+                    <Text style={styles.retryButtonText}>Retry</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Empty State */}
+              {!loading && !error && hospitals.length === 0 && (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>
+                    No hospitals found nearby
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.retryButton}
+                    onPress={refreshHospitals}>
+                    <Text style={styles.retryButtonText}>Refresh</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Hospital List */}
+              {!loading &&
+                !error &&
+                hospitals.map((hospital) => (
+                  <View key={hospital.id} style={styles.hospitalItem}>
+                    <View style={styles.hospitalInfo}>
+                      <View style={styles.hospitalDetails}>
+                        <Text style={styles.hospitalName}>{hospital.name}</Text>
+                        <Text style={styles.hospitalAddress} numberOfLines={1}>
+                          {hospital.vicinity}
+                        </Text>
+                        <View style={styles.hospitalMetrics}>
+                          <Text style={styles.etaText}>
+                            ETA{" "}
+                            <Text style={styles.metricValue}>
+                              {calculateETA(hospital.distance)}
+                            </Text>
+                          </Text>
+                          <Text style={styles.disText}>
+                            DIS{" "}
+                            <Text style={styles.metricValue}>
+                              {formatDistance(hospital.distance)}
+                            </Text>
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.goButton}
+                      onPress={() =>
+                        handleSelectHospital(hospital.id, hospital.name)
+                      }>
+                      <Text style={styles.goButtonText}>GO</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+            </ScrollView>
           </Animated.View>
         </TouchableWithoutFeedback>
       </View>
@@ -161,20 +241,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
   },
-  cameraIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: "#3498db",
-    borderRadius: 5,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  cameraImage: {
-    width: 24,
-    height: 24,
-    tintColor: "white",
-  },
   hospitalDetails: {
     flex: 1,
   },
@@ -182,6 +248,11 @@ const styles = StyleSheet.create({
     color: "#2c3e50",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  hospitalAddress: {
+    color: "#7f8c8d",
+    fontSize: 12,
+    marginTop: 2,
   },
   hospitalMetrics: {
     flexDirection: "row",
@@ -212,5 +283,51 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  loadingContainer: {
+    padding: 30,
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    color: "#7f8c8d",
+    fontSize: 16,
+  },
+  errorContainer: {
+    padding: 30,
+    alignItems: "center",
+  },
+  errorText: {
+    color: "#e74c3c",
+    fontSize: 16,
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  emptyContainer: {
+    padding: 30,
+    alignItems: "center",
+  },
+  emptyText: {
+    color: "#7f8c8d",
+    fontSize: 16,
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  retryButton: {
+    backgroundColor: "#3498db",
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  scrollContainer: {
+    flexGrow: 1,
+  },
+  scrollContentContainer: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
 });

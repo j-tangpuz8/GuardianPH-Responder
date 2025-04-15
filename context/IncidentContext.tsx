@@ -5,6 +5,7 @@ interface IncidentData {
   emergencyType: string;
   channelId: string;
   incidentId: string;
+  user: string | null;
   dispatcher?: {
     _id: string;
     firstName: string;
@@ -27,7 +28,7 @@ interface IncidentData {
     city?: string;
     role: string;
   };
-  responderStatus?: "enroute" | "onscene" | "medicalFacility" | "rtb" | "close";
+  responderStatus?: string;
   timestamp: number;
   location?: {
     lat?: number;

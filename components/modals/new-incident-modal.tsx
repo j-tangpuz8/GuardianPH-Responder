@@ -35,14 +35,11 @@ export default function NewIncidentModal() {
   const [isDenying, setIsDenying] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const router = useRouter();
-
-  // Create sound hooks outside of useMemo to maintain hook order
   const medicalSound = useSound(require("@/assets/sounds/ambulance.mp3"));
   const policeSound = useSound(require("@/assets/sounds/police.mp3"));
   const fireSound = useSound(require("@/assets/sounds/fire.mp3"));
   const generalSound = useSound(require("@/assets/sounds/general.mp3"));
 
-  // Group the sounds in a useMemo to avoid recreating the object
   const sounds = useMemo(
     () => ({
       medical: medicalSound,
@@ -116,8 +113,9 @@ export default function NewIncidentModal() {
         if (setCurrentIncident) {
           await setCurrentIncident({
             emergencyType: data.incidentType,
-            channelId: data.channelId || "test-default",
+            channelId: data.channelId || "fad-call",
             incidentId: data._id,
+            user: data.user,
             dispatcher: data.dispatcher
               ? {
                   _id: data.dispatcher,
@@ -138,6 +136,10 @@ export default function NewIncidentModal() {
                   role: "lgu",
                 }
               : undefined,
+            responderStatus: data.responderStatus
+              ? String(data.responderStatus)
+              : "enroute",
+
             timestamp: new Date(data.createdAt).getTime(),
             location: {
               lat: lat || undefined,
@@ -209,16 +211,19 @@ export default function NewIncidentModal() {
           emergencyType: currentIncident.incidentType,
           channelId: currentIncident.channelId,
           incidentId: currentIncident._id,
+          user: currentIncident.user,
           dispatcher: currentIncident.dispatcher,
           lgu: currentIncident.lgu,
           timestamp: new Date(currentIncident.createdAt).getTime(),
-          responderStatus: "enroute",
+          responderStatus: currentIncident?.responderStatus,
           location: {
             lat: currentIncident.incidentDetails?.coordinates?.lat,
             lon: currentIncident.incidentDetails?.coordinates?.lon,
             address: address || "Location unavailable",
           },
         });
+
+        console.log("Setting user ID:", currentIncident.user);
 
         setVisible(false);
       } catch (error) {
