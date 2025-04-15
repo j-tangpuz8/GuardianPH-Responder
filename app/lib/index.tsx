@@ -12,11 +12,16 @@ import {useCheckIn} from "@/context/CheckInContext";
 import {useAuth} from "@/context/AuthContext";
 import NewIncidentModal from "@/components/modals/new-incident-modal";
 import {useGetUserInfo} from "@/hooks/useGetUserInfo";
+import {clearDeniedIncidents} from "@/api/incidents/useFetchIncident";
 
 export default function CheckInPage() {
   const {isOnline, setIsOnline} = useCheckIn();
   const {authState} = useAuth();
   const {userInfo, loading, error} = useGetUserInfo();
+
+  // useEffect(() => {
+  //   clearDeniedIncidents!();
+  // }, []);
 
   const handleClick = () => {
     setIsOnline(!isOnline);

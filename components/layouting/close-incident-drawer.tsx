@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import React, {useEffect, useRef, useState} from "react";
 import {useIncident} from "@/context/IncidentContext";
+import {useRouter} from "expo-router";
 
 interface CloseIncidentDrawerProps {
   visible: boolean;
@@ -29,6 +30,7 @@ export default function CloseIncidentDrawer({
   const [message, setMessage] = useState("");
   const [rating, setRating] = useState(5);
   const {incidentState, clearIncident} = useIncident();
+  const router = useRouter();
 
   useEffect(() => {
     if (visible) {
@@ -47,11 +49,11 @@ export default function CloseIncidentDrawer({
 
   if (!visible) return null;
 
-  const handleSubmit = () => {
-    // Here you would handle the submission of the rating and message
-    // For now, we'll just close the drawer
+  const handleSubmit = async () => {
     onClose();
     clearIncident!();
+    console.log("incidentState cleared!");
+    router.replace("/lib");
   };
 
   const renderStars = () => {

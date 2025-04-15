@@ -63,6 +63,7 @@ export default function MessagesDrawer({
 
         await channel.watch();
         setChannel(channel);
+        console.log("Channel Id:", channelId);
       } catch (error) {
         console.error("Error connecting to channel:", error);
       }

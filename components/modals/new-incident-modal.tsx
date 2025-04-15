@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Animated,
 } from "react-native";
-import React, {useState, useEffect} from "react";
+import React, {useState, useEffect, useRef, useMemo} from "react";
 import {useIncident} from "@/context/IncidentContext";
 import {useCheckIn} from "@/context/CheckInContext";
 import all from "@/utils/getIcon";
@@ -15,9 +15,13 @@ import {useShakeAnimation} from "@/hooks/useShakeAnimation";
 import DenyIncidentModal from "./deny-incident-modal";
 import {useRouter} from "expo-router";
 import {assignResponder} from "@/api/incidents/useUpdateIncident";
-import {fetchRecentIncident} from "@/api/incidents/useFetchIncident";
+import {
+  fetchRecentIncident,
+  denyIncident,
+} from "@/api/incidents/useFetchIncident";
 import {useAuth} from "@/context/AuthContext";
 import useLocation from "@/hooks/useLocation";
+import {useSound} from "@/utils/PlaySound";
 
 export default function NewIncidentModal() {
   const {incidentState, setCurrentIncident, clearIncident} = useIncident();
@@ -32,6 +36,54 @@ export default function NewIncidentModal() {
   const [isAssigning, setIsAssigning] = useState(false);
   const router = useRouter();
 
+  // Create sound hooks outside of useMemo to maintain hook order
+  const medicalSound = useSound(require("@/assets/sounds/ambulance.mp3"));
+  const policeSound = useSound(require("@/assets/sounds/police.mp3"));
+  const fireSound = useSound(require("@/assets/sounds/fire.mp3"));
+  const generalSound = useSound(require("@/assets/sounds/general.mp3"));
+
+  // Group the sounds in a useMemo to avoid recreating the object
+  const sounds = useMemo(
+    () => ({
+      medical: medicalSound,
+      police: policeSound,
+      fire: fireSound,
+      general: generalSound,
+    }),
+    [medicalSound, policeSound, fireSound, generalSound]
+  );
+
+  const hasPlayedSound = useRef(false);
+  const deniedIncidents = useRef<Set<string>>(new Set());
+  const getIncidentSound = (incidentType: string) => {
+    const type = incidentType || "";
+
+    if (type.includes("Medical")) return sounds.medical;
+    if (type.includes("Police")) return sounds.police;
+    if (type.includes("Fire")) return sounds.fire;
+    return sounds.general;
+  };
+
+  const stopAllSounds = () => {
+    sounds.medical.stopSound();
+    sounds.police.stopSound();
+    sounds.fire.stopSound();
+    sounds.general.stopSound();
+  };
+
+  useEffect(() => {
+    if (visible && currentIncident && !hasPlayedSound.current) {
+      const {playSound} = getIncidentSound(currentIncident.incidentType);
+      playSound();
+      hasPlayedSound.current = true;
+    }
+
+    if (!visible) {
+      stopAllSounds();
+      hasPlayedSound.current = false;
+    }
+  }, [visible, currentIncident, sounds]);
+
   useEffect(() => {
     if (!isOnline || isDenying || isAssigning) {
       setVisible(false);
@@ -43,6 +95,11 @@ export default function NewIncidentModal() {
         const data = await fetchRecentIncident();
 
         if (!data) {
+          setVisible(false);
+          return;
+        }
+
+        if (deniedIncidents.current.has(data._id)) {
           setVisible(false);
           return;
         }
@@ -107,7 +164,7 @@ export default function NewIncidentModal() {
       }
     };
 
-    const intervalId = setInterval(fetchRecentIncident, 3000);
+    const intervalId = setInterval(fetchIncident, 3000);
     fetchIncident();
 
     return () => {
@@ -116,37 +173,38 @@ export default function NewIncidentModal() {
   }, [isOnline, setCurrentIncident, isDenying, isAssigning]);
 
   const handleDeny = async () => {
+    stopAllSounds();
     setIsDenying(true);
     setVisible(false);
     setShowDenyModal(true);
   };
 
   const handleRespond = async () => {
+    stopAllSounds();
     if (setCurrentIncident && currentIncident && authState?.user_id) {
       try {
         setIsAssigning(true);
+        router.replace("/(responding)");
 
-        // responders location
-        const myLocation = await getUserLocation();
+        const [myLocation, address] = await Promise.all([
+          getUserLocation(),
+          getAddressFromCoords(
+            currentIncident.incidentDetails?.coordinates?.lat,
+            currentIncident.incidentDetails?.coordinates?.lon
+          ),
+        ]);
+
         if (!myLocation) {
           throw new Error("error getting responders location");
         }
 
+        // assign the responder
         await assignResponder(currentIncident._id, authState?.user_id, {
           lat: myLocation?.latitude,
           lon: myLocation?.longitude,
         });
 
-        // volunteer's location
-        const lat = currentIncident.incidentDetails?.coordinates?.lat;
-        const lon = currentIncident.incidentDetails?.coordinates?.lon;
-
-        let address =
-          currentIncident.location?.address || "Location unavailable";
-        if (!address && lat && lon) {
-          address = await getAddressFromCoords(lat, lon);
-        }
-
+        // set incidentState
         await setCurrentIncident({
           emergencyType: currentIncident.incidentType,
           channelId: currentIncident.channelId,
@@ -156,15 +214,15 @@ export default function NewIncidentModal() {
           timestamp: new Date(currentIncident.createdAt).getTime(),
           responderStatus: "enroute",
           location: {
-            lat,
-            lon,
-            address,
+            lat: currentIncident.incidentDetails?.coordinates?.lat,
+            lon: currentIncident.incidentDetails?.coordinates?.lon,
+            address: address || "Location unavailable",
           },
         });
-        router.replace("/(responding)");
+
         setVisible(false);
       } catch (error) {
-        console.error("error assining responder: ", error);
+        console.error("error assigning responder: ", error);
       } finally {
         setIsAssigning(false);
       }
@@ -224,14 +282,20 @@ export default function NewIncidentModal() {
       )}
       <DenyIncidentModal
         visible={showDenyModal}
+        incidentId={currentIncident?._id}
         onClose={() => {
           setShowDenyModal(false);
           setIsDenying(false);
         }}
-        onConfirm={() => {
+        onConfirm={(reason) => {
           if (clearIncident) {
             clearIncident();
           }
+          if (currentIncident?._id) {
+            deniedIncidents.current.add(currentIncident._id);
+            denyIncident(currentIncident._id);
+          }
+
           setShowDenyModal(false);
           setIsDenying(false);
         }}

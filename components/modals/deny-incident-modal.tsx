@@ -12,19 +12,30 @@ import {useIncident} from "@/context/IncidentContext";
 interface DenyIncidentModalProps {
   visible: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (reason: string) => void;
+  incidentId?: string;
 }
 
 export default function DenyIncidentModal({
   visible,
   onClose,
   onConfirm,
+  incidentId,
 }: DenyIncidentModalProps) {
   const [selectedReason, setSelectedReason] = useState<string>("");
   const [customReason, setCustomReason] = useState<string>("");
   const {incidentState, setCurrentIncident, clearIncident} = useIncident();
 
   const reasons = ["Crew not ready", "On Break", "Maintenance", "Specify"];
+
+  const handleConfirm = () => {
+    const finalReason =
+      selectedReason === "Specify" ? customReason : selectedReason;
+
+    onConfirm(finalReason);
+    setSelectedReason("");
+    setCustomReason("");
+  };
 
   return (
     <Modal transparent visible={visible} animationType="fade">
@@ -68,7 +79,10 @@ export default function DenyIncidentModal({
             />
           )}
 
-          <TouchableOpacity style={styles.sendButton} onPress={onConfirm}>
+          <TouchableOpacity
+            style={[styles.sendButton, !selectedReason ? {opacity: 0.5} : {}]}
+            onPress={handleConfirm}
+            disabled={!selectedReason}>
             <Text style={styles.sendButtonText}>SEND</Text>
           </TouchableOpacity>
         </View>

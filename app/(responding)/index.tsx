@@ -31,7 +31,8 @@ const index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const mapRef = useRef<MapView>(null);
 
-  const userCoords = useMemo(() => {
+  // responder
+  const responderCoords = useMemo(() => {
     return lat && lon
       ? {
           latitude: lat,
@@ -113,30 +114,30 @@ const index = () => {
   }, [incidentState?.location?.lat, incidentState?.location?.lon]);
 
   // map loading state ui
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3498db" />
-        <Text style={styles.loadingText}>Loading map...</Text>
-      </View>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <View style={styles.loadingContainer}>
+  //       <ActivityIndicator size="large" color="#3498db" />
+  //       <Text style={styles.loadingText}>Loading map...</Text>
+  //     </View>
+  //   );
+  // }
 
-  // err handling
-  if (!userCoords || !incidentCoords) {
-    return (
-      <View style={styles.container}>
-        <Text>
-          {errorMsg ||
-            "Unable to load map data. Please check your location settings."}
-        </Text>
-      </View>
-    );
-  }
+  // // err handling
+  // if (!responderCoords || !incidentCoords) {
+  //   return (
+  //     <View style={styles.container}>
+  //       <Text>
+  //         {errorMsg ||
+  //           "Unable to load map data. Please check your location settings."}
+  //       </Text>
+  //     </View>
+  //   );
+  // }
 
   return (
     <View style={styles.container}>
-      <MapView
+      {/* <MapView
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={styles.map}
@@ -146,10 +147,10 @@ const index = () => {
         initialRegion={mapRegion!}
         loadingEnabled={true}
         loadingIndicatorColor="#3498db"
-        loadingBackgroundColor="#f9f9f9">
-        {/* user location marker */}
-        <Marker
-          coordinate={userCoords}
+        loadingBackgroundColor="#f9f9f9"> */}
+      {/* user location marker */}
+      {/* <Marker
+          coordinate={responderCoords}
           title="Your Location"
           description="You are here">
           <View style={styles.markerWrapper}>
@@ -158,10 +159,10 @@ const index = () => {
               style={styles.markerIcon}
             />
           </View>
-        </Marker>
+        </Marker> */}
 
-        {/* incident loc marker */}
-        <Marker
+      {/* incident loc marker */}
+      {/* <Marker
           coordinate={incidentCoords}
           title="Incident Location"
           description="Emergency incident">
@@ -171,10 +172,10 @@ const index = () => {
               style={styles.markerIcon}
             />
           </View>
-        </Marker>
+        </Marker> */}
 
-        <MapViewDirections
-          origin={userCoords}
+      {/* <MapViewDirections
+          origin={responderCoords}
           destination={incidentCoords}
           apikey={GOOGLE_MAPS_API_KEY!}
           strokeWidth={4}
@@ -189,16 +190,16 @@ const index = () => {
             console.log("Directions API error:", errorMessage);
           }}
         />
-      </MapView>
+      </MapView> */}
 
       {/* Recenter button */}
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={styles.recenterButton}
         onPress={() => {
-          if (mapRef.current && userCoords) {
+          if (mapRef.current && responderCoords) {
             mapRef.current.animateToRegion(
               {
-                ...userCoords,
+                ...responderCoords,
                 latitudeDelta: LATITUDE_DELTA,
                 longitudeDelta: LONGITUDE_DELTA,
               },
@@ -207,15 +208,15 @@ const index = () => {
           }
         }}>
         <Ionicons name="locate" size={24} color="#2196F3" />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       {/* distance info and eta */}
-      {distance && duration && (
+      {/* {distance && duration && (
         <View style={styles.infoContainer}>
           <Text style={styles.infoText}>Distance: {distance}</Text>
           <Text style={styles.infoText}>ETA: {duration}</Text>
         </View>
-      )}
+      )} */}
     </View>
   );
 };

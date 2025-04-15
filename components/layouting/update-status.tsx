@@ -25,9 +25,7 @@ export default function UpdateStatusModal({
   visible,
   onClose,
 }: UpdateStatusModalProps) {
-  // In the UpdateStatusModal component
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  // Initialize with null instead of empty string
   const [currentStatus, setCurrentStatus] = useState<string | null>(null);
   const [closeIncidentVisible, setCloseIncidentVisible] =
     useState<boolean>(false);
@@ -35,7 +33,6 @@ export default function UpdateStatusModal({
   const {incidentState, setCurrentIncident} = useIncident();
 
   useEffect(() => {
-    // Initialize the current status based on the incident state
     if (incidentState?.responderStatus) {
       console.log(
         "Modal: Current responder status:",
