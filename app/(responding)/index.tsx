@@ -4,14 +4,17 @@ import {
   View,
   Dimensions,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import React, {useEffect, useState, useRef, useMemo} from "react";
 import useLocation from "@/hooks/useLocation";
 import MapView, {Marker, PROVIDER_GOOGLE, Region} from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import {useIncident} from "@/context/IncidentContext";
+import all from "@/utils/getIcon";
+import {TouchableOpacity} from "react-native";
+import {Ionicons} from "@expo/vector-icons";
 
-// Define your Google Maps API key here - this should have Directions API enabled
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const {width, height} = Dimensions.get("window");
@@ -28,7 +31,6 @@ const index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const mapRef = useRef<MapView>(null);
 
-  // Memoize coordinates to prevent unnecessary re-renders
   const userCoords = useMemo(() => {
     return lat && lon
       ? {
@@ -38,14 +40,22 @@ const index = () => {
       : null;
   }, [lat, lon]);
 
-  const incidentCoords = useMemo(() => {
-    return incidentState?.location?.lat && incidentState?.location?.lon
-      ? {
-          latitude: Number(incidentState.location.lat),
-          longitude: Number(incidentState.location.lon),
-        }
-      : null;
-  }, [incidentState?.location?.lat, incidentState?.location?.lon]);
+  // const incidentCoords = useMemo(() => {
+  //   return incidentState?.location?.lat && incidentState?.location?.lon
+  //     ? {
+  //         latitude: Number(incidentState.location.lat),
+  //         longitude: Number(incidentState.location.lon),
+  //       }
+  //     : null;
+  // }, [incidentState?.location?.lat, incidentState?.location?.lon]);
+
+  const incidentCoords = useMemo(
+    () => ({
+      latitude: 10.373,
+      longitude: 123.9545,
+    }),
+    []
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -102,7 +112,7 @@ const index = () => {
     };
   }, [incidentState?.location?.lat, incidentState?.location?.lon]);
 
-  // Handle loading state
+  // map loading state ui
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -112,7 +122,7 @@ const index = () => {
     );
   }
 
-  // Handle error or missing coordinates
+  // err handling
   if (!userCoords || !incidentCoords) {
     return (
       <View style={styles.container}>
@@ -132,7 +142,7 @@ const index = () => {
         style={styles.map}
         region={mapRegion!}
         showsUserLocation={true}
-        showsMyLocationButton={true}
+        showsMyLocationButton={false}
         initialRegion={mapRegion!}
         loadingEnabled={true}
         loadingIndicatorColor="#3498db"
@@ -141,17 +151,27 @@ const index = () => {
         <Marker
           coordinate={userCoords}
           title="Your Location"
-          description="You are here"
-          pinColor="blue"
-        />
+          description="You are here">
+          <View style={styles.markerWrapper}>
+            <Image
+              source={all.GetIcon(incidentState?.emergencyType!)}
+              style={styles.markerIcon}
+            />
+          </View>
+        </Marker>
 
         {/* incident loc marker */}
         <Marker
           coordinate={incidentCoords}
           title="Incident Location"
-          description="Emergency incident"
-          pinColor="red"
-        />
+          description="Emergency incident">
+          <View style={styles.markerWrapper}>
+            <Image
+              source={all.GetEmergencyIcon(incidentState?.emergencyType!)}
+              style={styles.markerIcon}
+            />
+          </View>
+        </Marker>
 
         <MapViewDirections
           origin={userCoords}
@@ -170,6 +190,24 @@ const index = () => {
           }}
         />
       </MapView>
+
+      {/* Recenter button */}
+      <TouchableOpacity
+        style={styles.recenterButton}
+        onPress={() => {
+          if (mapRef.current && userCoords) {
+            mapRef.current.animateToRegion(
+              {
+                ...userCoords,
+                latitudeDelta: LATITUDE_DELTA,
+                longitudeDelta: LONGITUDE_DELTA,
+              },
+              1000
+            );
+          }
+        }}>
+        <Ionicons name="locate" size={24} color="#2196F3" />
+      </TouchableOpacity>
 
       {/* distance info and eta */}
       {distance && duration && (
@@ -191,6 +229,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   loadingContainer: {
     flex: 1,
     backgroundColor: "#fff",
@@ -226,5 +265,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginVertical: 2,
+  },
+  markerWrapper: {
+    width: 40,
+    height: 35,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    backgroundColor: "transparent",
+  },
+
+  markerIcon: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "contain",
+  },
+  recenterButton: {
+    position: "absolute",
+    right: 16,
+    top: 16,
+    backgroundColor: "white",
+    borderRadius: 30,
+    padding: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });

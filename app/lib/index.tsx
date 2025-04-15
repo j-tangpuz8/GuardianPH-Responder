@@ -45,7 +45,7 @@ export default function CheckInPage() {
                 {userInfo?.firstName} {userInfo?.lastName}
               </Text>
             </View>
-            <Text style={styles.subtitle}>Bantay Mandaue Command Centerr</Text>
+            <Text style={styles.subtitle}>Bantay Mandaue Command Center</Text>
             <View style={styles.statusContainer}>
               <Text
                 style={[

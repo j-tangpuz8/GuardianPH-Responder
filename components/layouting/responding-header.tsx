@@ -7,16 +7,13 @@ import {useRouter} from "expo-router";
 export default function RespondingHeader() {
   const {incidentState} = useIncident();
   const router = useRouter();
-  // Initialize with null instead of "enroute" to avoid showing incorrect status
   const [currentStatus, setCurrentStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    // Set the status from incident state whenever it changes
     if (incidentState?.responderStatus) {
       console.log("Header: Setting status to", incidentState.responderStatus);
       setCurrentStatus(incidentState.responderStatus);
     } else {
-      // If responderStatus is not present, default to "enroute"
       console.log(
         "No responderStatus found in incidentState, defaulting to enroute"
       );
@@ -36,7 +33,6 @@ export default function RespondingHeader() {
       rtb: "RETURN TO BASE",
       close: "CLOSE INCIDENT",
     };
-    // Use "ENROUTE" as default if status is missing
     return statusMap[status || "enroute"] || "ENROUTE";
   };
 
@@ -89,7 +85,7 @@ export default function RespondingHeader() {
       <View style={styles.container}>
         <View style={styles.mainContent}>
           <Image
-            source={all.getEmergencyIcon(
+            source={all.GetEmergencyIcon(
               incidentState?.emergencyType || "Fire"
             )}
             style={styles.icon}
@@ -117,7 +113,7 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 8,
-    paddingBottom: 0,
+    paddingBottom: 5,
     backgroundColor: "#3498db",
   },
   mainContent: {
@@ -126,7 +122,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   icon: {
-    width: 55,
+    width: 60,
     height: 60,
     borderRadius: 100,
   },

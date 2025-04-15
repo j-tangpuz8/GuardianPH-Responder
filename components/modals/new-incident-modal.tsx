@@ -14,7 +14,6 @@ import all from "@/utils/getIcon";
 import {useShakeAnimation} from "@/hooks/useShakeAnimation";
 import DenyIncidentModal from "./deny-incident-modal";
 import {useRouter} from "expo-router";
-import {getAddressFromCoords} from "@/utils/geocoding";
 import {assignResponder} from "@/api/incidents/useUpdateIncident";
 import {fetchRecentIncident} from "@/api/incidents/useFetchIncident";
 import {useAuth} from "@/context/AuthContext";
@@ -24,7 +23,7 @@ export default function NewIncidentModal() {
   const {incidentState, setCurrentIncident, clearIncident} = useIncident();
   const {authState} = useAuth();
   const {isOnline} = useCheckIn();
-  const {getUserLocation} = useLocation();
+  const {getUserLocation, getAddressFromCoords} = useLocation();
   const [visible, setVisible] = useState(false);
   const [currentIncident, setCurrentIncidentState] = useState<any>(null);
   const shakeStyle = useShakeAnimation(visible);
@@ -138,7 +137,7 @@ export default function NewIncidentModal() {
           lon: myLocation?.longitude,
         });
 
-        // volunterr's location
+        // volunteer's location
         const lat = currentIncident.incidentDetails?.coordinates?.lat;
         const lon = currentIncident.incidentDetails?.coordinates?.lon;
 
@@ -155,6 +154,7 @@ export default function NewIncidentModal() {
           dispatcher: currentIncident.dispatcher,
           lgu: currentIncident.lgu,
           timestamp: new Date(currentIncident.createdAt).getTime(),
+          responderStatus: "enroute",
           location: {
             lat,
             lon,
@@ -190,14 +190,17 @@ export default function NewIncidentModal() {
                   },
                 ]}>
                 <Image
-                  source={all.getEmergencyIcon(currentIncident?.incidentType)}
+                  source={all.GetEmergencyIcon(currentIncident?.incidentType)}
                   style={styles.icon}
                 />
-                <View>
+                <View style={styles.textContainer}>
                   <Text style={styles.incidentType}>
                     {currentIncident.incidentType?.toUpperCase()}
                   </Text>
-                  <Text style={styles.incidentLocation}>
+                  <Text
+                    style={styles.incidentLocation}
+                    numberOfLines={2}
+                    ellipsizeMode="tail">
                     {currentIncident.location?.address ||
                       "Location unavailable"}
                   </Text>
@@ -269,8 +272,12 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   icon: {
-    width: 80,
-    height: 50,
+    width: 60,
+    height: 60,
+    marginRight: 20,
+  },
+  textContainer: {
+    flex: 1,
     marginRight: 10,
   },
   incidentType: {
@@ -281,6 +288,7 @@ const styles = StyleSheet.create({
   incidentLocation: {
     color: "white",
     fontSize: 14,
+    flexWrap: "wrap",
   },
   buttonsContainer: {
     flexDirection: "row",
