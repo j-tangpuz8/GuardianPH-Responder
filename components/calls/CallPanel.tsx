@@ -32,7 +32,7 @@ export default function CallPanel() {
   const callingState = useCallCallingState();
   if (callingState === CallingState.RINGING && !isCallCreatedByMe) {
     return (
-      <View style={styles.fullScreenContainer}>
+      <View style={[StyleSheet.absoluteFill, styles.fullScreenContainer]}>
         <IncomingCall onAcceptCallHandler={handleAcceptCall} />
       </View>
     );
