@@ -6,7 +6,7 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
-import React, {useEffect, useState, useRef, useMemo} from "react";
+import React, {useEffect, useState, useRef, useMemo, useCallback} from "react";
 import useLocation from "@/hooks/useLocation";
 import MapView, {Marker, PROVIDER_GOOGLE, Region} from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
@@ -14,6 +14,8 @@ import {useIncident} from "@/context/IncidentContext";
 import all from "@/utils/getIcon";
 import {TouchableOpacity} from "react-native";
 import {Ionicons} from "@expo/vector-icons";
+import {useFocusEffect} from "expo-router";
+import {useCall} from "@stream-io/video-react-native-sdk";
 
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -30,6 +32,7 @@ const index = () => {
   const [duration, setDuration] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const mapRef = useRef<MapView>(null);
+  const mapInitialized = useRef(false);
 
   // responder
   const responderCoords = useMemo(() => {
@@ -58,60 +61,68 @@ const index = () => {
     []
   );
 
-  useEffect(() => {
-    let isMounted = true;
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
 
-    const getLocation = async () => {
-      try {
-        setIsLoading(true);
-        const locationData = await getUserLocation();
+      const getLocation = async () => {
+        if (mapInitialized.current) return;
 
-        if (!isMounted) return;
+        try {
+          setIsLoading(true);
+          const locationData = await getUserLocation();
 
-        if (
-          locationData &&
-          incidentState?.location?.lat &&
-          incidentState?.location?.lon
-        ) {
-          const midLat =
-            (locationData.latitude + incidentState.location.lat) / 2;
-          const midLon =
-            (locationData.longitude + incidentState.location.lon) / 2;
+          if (!isMounted) return;
 
-          const latDelta =
-            Math.abs(locationData.latitude - incidentState.location.lat) * 1.5;
-          const lonDelta =
-            Math.abs(locationData.longitude - incidentState.location.lon) * 1.5;
+          if (
+            locationData &&
+            incidentState?.location?.lat &&
+            incidentState?.location?.lon
+          ) {
+            const midLat =
+              (locationData.latitude + incidentState.location.lat) / 2;
+            const midLon =
+              (locationData.longitude + incidentState.location.lon) / 2;
 
-          setMapRegion({
-            latitude: midLat,
-            longitude: midLon,
-            latitudeDelta: Math.max(latDelta, LATITUDE_DELTA),
-            longitudeDelta: Math.max(lonDelta, LONGITUDE_DELTA),
-          });
-        } else if (locationData) {
-          setMapRegion({
-            latitude: locationData.latitude,
-            longitude: locationData.longitude,
-            latitudeDelta: LATITUDE_DELTA,
-            longitudeDelta: LONGITUDE_DELTA,
-          });
+            const latDelta =
+              Math.abs(locationData.latitude - incidentState.location.lat) *
+              1.5;
+            const lonDelta =
+              Math.abs(locationData.longitude - incidentState.location.lon) *
+              1.5;
+
+            setMapRegion({
+              latitude: midLat,
+              longitude: midLon,
+              latitudeDelta: Math.max(latDelta, LATITUDE_DELTA),
+              longitudeDelta: Math.max(lonDelta, LONGITUDE_DELTA),
+            });
+          } else if (locationData) {
+            setMapRegion({
+              latitude: locationData.latitude,
+              longitude: locationData.longitude,
+              latitudeDelta: LATITUDE_DELTA,
+              longitudeDelta: LONGITUDE_DELTA,
+            });
+          }
+
+          mapInitialized.current = true;
+        } catch (error) {
+          console.error("Error getting location:", error);
+        } finally {
+          if (isMounted) {
+            setIsLoading(false);
+          }
         }
-      } catch (error) {
-        console.error("Error getting location:", error);
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
+      };
 
-    getLocation();
+      getLocation();
 
-    return () => {
-      isMounted = false;
-    };
-  }, [incidentState?.location?.lat, incidentState?.location?.lon]);
+      return () => {
+        isMounted = false;
+      };
+    }, [incidentState?.location?.lat, incidentState?.location?.lon])
+  );
 
   // map loading state ui
   if (isLoading) {
@@ -152,7 +163,8 @@ const index = () => {
         <Marker
           coordinate={responderCoords}
           title="Your Location"
-          description="You are here">
+          description="You are here"
+          anchor={{x: 0.5, y: 0.5}}>
           <View style={styles.markerWrapper}>
             <Image
               source={all.GetIcon(incidentState?.emergencyType!)}
@@ -165,7 +177,8 @@ const index = () => {
         <Marker
           coordinate={incidentCoords}
           title="Incident Location"
-          description="Emergency incident">
+          description="Emergency incident"
+          anchor={{x: 0.5, y: 0.5}}>
           <View style={styles.markerWrapper}>
             <Image
               source={all.GetEmergencyIcon(incidentState?.emergencyType!)}
