@@ -39,7 +39,7 @@ export default function MessagesDrawer({
   const {incidentState} = useIncident();
 
   const chatClient = useRef(StreamChat.getInstance(STREAM_KEY!)).current;
-  const hash = incidentState?.incidentId.substring(5, 9);
+  const hash = incidentState?.incidentId.substring(4, 9);
   const channelId = `${incidentState?.emergencyType?.toLowerCase()}-${hash}`;
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export default function MessagesDrawer({
             {
               id: authState?.user_id!,
               name: "Responder",
-              image: "https://getstream.io/random_svg/?name=test",
+              image: "@assets/images/userAvatar.png",
             },
             authState?.token!
           );
