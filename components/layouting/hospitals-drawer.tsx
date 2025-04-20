@@ -6,13 +6,14 @@ import {
   TouchableWithoutFeedback,
   Animated,
   Dimensions,
-  Image,
+  Alert,
   ActivityIndicator,
   ScrollView,
 } from "react-native";
 import React, {useEffect, useRef} from "react";
 import {useIncident} from "@/context/IncidentContext";
-import {useNearbyHospitals} from "@/hooks/useGetHospitals";
+import {useNearbyHospitals, Hospital} from "@/hooks/useGetHospitals";
+import {addHospitalAndUpdateIncident} from "@/api/hospitals/useHospitals";
 
 interface MedicalFacilityDrawerProps {
   visible: boolean;
@@ -28,7 +29,7 @@ export default function MedicalFacilityDrawer({
   onSelectFacility,
 }: MedicalFacilityDrawerProps) {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const {incidentState} = useIncident();
+  const {incidentState, updateSelectedHospital} = useIncident();
   const {hospitals, loading, error, refreshHospitals} = useNearbyHospitals({
     radius: 10000,
     limit: 3,
@@ -52,8 +53,46 @@ export default function MedicalFacilityDrawer({
 
   if (!visible) return null;
 
-  const handleSelectHospital = (hospitalId: string, hospitalName: string) => {
-    onSelectFacility(hospitalId, hospitalName);
+  // set the selected hospital in the incident staet
+  const handleSelectHospital = async (hospital: Hospital) => {
+    if (!incidentState?.incidentId || !updateSelectedHospital) {
+      Alert.alert("Error", "Cannot select hospital: No active incident");
+      return;
+    }
+    try {
+      updateSelectedHospital({
+        id: hospital.id,
+        name: hospital.name,
+        location: hospital.location,
+        vicinity: hospital.vicinity,
+      });
+
+      const result = await addHospitalAndUpdateIncident(
+        hospital,
+        incidentState.incidentId
+      );
+
+      if (result.success) {
+        updateSelectedHospital(
+          {
+            id: hospital.id,
+            name: hospital.name,
+            location: hospital.location,
+            vicinity: hospital.vicinity,
+          },
+          result.hospitalId
+        );
+        onSelectFacility(hospital.id, hospital.name);
+      } else {
+        Alert.alert(
+          "Warning",
+          "Hospital selected but could not be saved to database. Navigation will still work."
+        );
+      }
+    } catch (error) {
+      console.error("Error selecting hospital:", error);
+      Alert.alert("Error", "Failed to select hospital. Please try again.");
+    }
     onClose();
   };
 
@@ -168,9 +207,7 @@ export default function MedicalFacilityDrawer({
                     </View>
                     <TouchableOpacity
                       style={styles.goButton}
-                      onPress={() =>
-                        handleSelectHospital(hospital.id, hospital.name)
-                      }>
+                      onPress={() => handleSelectHospital(hospital)}>
                       <Text style={styles.goButtonText}>GO</Text>
                     </TouchableOpacity>
                   </View>

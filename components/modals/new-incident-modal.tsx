@@ -140,12 +140,12 @@ export default function NewIncidentModal() {
               ? String(data.responderStatus)
               : "enroute",
 
-            timestamp: new Date(data.createdAt).getTime(),
             location: {
               lat: lat || undefined,
               lon: lon || undefined,
               address,
             },
+            selectedHospitalId: data.selectedHospital || null,
           });
         }
         // local state
@@ -200,12 +200,6 @@ export default function NewIncidentModal() {
           throw new Error("error getting responders location");
         }
 
-        // assign the responder
-        await assignResponder(currentIncident._id, authState?.user_id, {
-          lat: myLocation?.latitude,
-          lon: myLocation?.longitude,
-        });
-
         // set incidentState
         await setCurrentIncident({
           emergencyType: currentIncident.incidentType,
@@ -214,7 +208,6 @@ export default function NewIncidentModal() {
           user: currentIncident.user,
           dispatcher: currentIncident.dispatcher,
           lgu: currentIncident.lgu,
-          timestamp: new Date(currentIncident.createdAt).getTime(),
           responderStatus: currentIncident?.responderStatus,
           location: {
             lat: currentIncident.incidentDetails?.coordinates?.lat,
@@ -222,8 +215,6 @@ export default function NewIncidentModal() {
             address: address || "Location unavailable",
           },
         });
-
-        console.log("Setting user ID:", currentIncident.user);
 
         setVisible(false);
       } catch (error) {

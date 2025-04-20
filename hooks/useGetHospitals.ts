@@ -1,7 +1,7 @@
 import {useState, useEffect} from "react";
 import * as Location from "expo-location";
 
-interface Hospital {
+export interface Hospital {
   id: string;
   name: string;
   vicinity: string;

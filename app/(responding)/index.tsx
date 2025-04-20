@@ -5,6 +5,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Image,
+  TouchableOpacity,
 } from "react-native";
 import React, {useEffect, useState, useRef, useMemo, useCallback} from "react";
 import useLocation from "@/hooks/useLocation";
@@ -12,10 +13,8 @@ import MapView, {Marker, PROVIDER_GOOGLE, Region} from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import {useIncident} from "@/context/IncidentContext";
 import all from "@/utils/getIcon";
-import {TouchableOpacity} from "react-native";
-import {Ionicons} from "@expo/vector-icons";
+import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 import {useFocusEffect} from "expo-router";
-import {useCall} from "@stream-io/video-react-native-sdk";
 
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -26,7 +25,7 @@ const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 
 const index = () => {
   const {lat, lon, errorMsg, getUserLocation} = useLocation();
-  const {incidentState} = useIncident();
+  const {incidentState, fetchSelectedHospital} = useIncident();
   const [mapRegion, setMapRegion] = useState<Region | null>(null);
   const [distance, setDistance] = useState<string | null>(null);
   const [duration, setDuration] = useState<string | null>(null);
@@ -53,6 +52,7 @@ const index = () => {
   //     : null;
   // }, [incidentState?.location?.lat, incidentState?.location?.lon]);
 
+  // temporary dummy incident coordinates for testing...
   const incidentCoords = useMemo(
     () => ({
       latitude: 10.373,
@@ -60,6 +60,33 @@ const index = () => {
     }),
     []
   );
+
+  // fetch selected hospital
+  useEffect(() => {
+    if (
+      incidentState?.selectedHospitalId &&
+      !incidentState?.selectedHospital &&
+      fetchSelectedHospital
+    ) {
+      fetchSelectedHospital();
+    }
+  }, [incidentState?.selectedHospitalId]);
+
+  // hospital coordinates
+  const hospitalCoords = useMemo(() => {
+    if (incidentState?.selectedHospital) {
+      return {
+        latitude: incidentState.selectedHospital.location.lat,
+        longitude: incidentState.selectedHospital.location.lng,
+      };
+    }
+    return null;
+  }, [incidentState?.selectedHospital]);
+
+  // Determine which destination to use
+  const destinationCoords = useMemo(() => {
+    return hospitalCoords || incidentCoords;
+  }, [hospitalCoords, incidentCoords]);
 
   useFocusEffect(
     useCallback(() => {
@@ -79,17 +106,15 @@ const index = () => {
             incidentState?.location?.lat &&
             incidentState?.location?.lon
           ) {
-            const midLat =
-              (locationData.latitude + incidentState.location.lat) / 2;
-            const midLon =
-              (locationData.longitude + incidentState.location.lon) / 2;
+            const destLat = hospitalCoords?.latitude || incidentCoords.latitude;
+            const destLon =
+              hospitalCoords?.longitude || incidentCoords.longitude;
 
-            const latDelta =
-              Math.abs(locationData.latitude - incidentState.location.lat) *
-              1.5;
-            const lonDelta =
-              Math.abs(locationData.longitude - incidentState.location.lon) *
-              1.5;
+            const midLat = (locationData.latitude + destLat) / 2;
+            const midLon = (locationData.longitude + destLon) / 2;
+
+            const latDelta = Math.abs(locationData.latitude - destLat) * 1.5;
+            const lonDelta = Math.abs(locationData.longitude - destLon) * 1.5;
 
             setMapRegion({
               latitude: midLat,
@@ -121,8 +146,37 @@ const index = () => {
       return () => {
         isMounted = false;
       };
-    }, [incidentState?.location?.lat, incidentState?.location?.lon])
+    }, [
+      incidentState?.location?.lat,
+      incidentState?.location?.lon,
+      hospitalCoords,
+    ])
   );
+
+  // Update map when hospital selection changes
+  useEffect(() => {
+    if (mapRef.current && responderCoords && hospitalCoords) {
+      mapInitialized.current = false;
+
+      const midLat = (responderCoords.latitude + hospitalCoords.latitude) / 2;
+      const midLon = (responderCoords.longitude + hospitalCoords.longitude) / 2;
+
+      const latDelta =
+        Math.abs(responderCoords.latitude - hospitalCoords.latitude) * 1.5;
+      const lonDelta =
+        Math.abs(responderCoords.longitude - hospitalCoords.longitude) * 1.5;
+
+      mapRef.current.animateToRegion(
+        {
+          latitude: midLat,
+          longitude: midLon,
+          latitudeDelta: Math.max(latDelta, LATITUDE_DELTA),
+          longitudeDelta: Math.max(lonDelta, LONGITUDE_DELTA),
+        },
+        1000
+      );
+    }
+  }, [hospitalCoords, responderCoords]);
 
   // map loading state ui
   if (isLoading) {
@@ -145,6 +199,11 @@ const index = () => {
       </View>
     );
   }
+
+  console.log(
+    "Responding Screen - incidentState:",
+    JSON.stringify(incidentState, null, 2)
+  );
 
   return (
     <View style={styles.container}>
@@ -174,22 +233,41 @@ const index = () => {
         </Marker>
 
         {/* incident loc marker */}
-        <Marker
-          coordinate={incidentCoords}
-          title="Incident Location"
-          description="Emergency incident"
-          anchor={{x: 0.5, y: 0.5}}>
-          <View style={styles.markerWrapper}>
-            <Image
-              source={all.GetEmergencyIcon(incidentState?.emergencyType!)}
-              style={styles.markerIcon}
-            />
-          </View>
-        </Marker>
+        {!hospitalCoords && (
+          <Marker
+            coordinate={incidentCoords}
+            title="Incident Location"
+            description="Emergency incident"
+            anchor={{x: 0.5, y: 0.5}}>
+            <View style={styles.markerWrapper}>
+              <Image
+                source={all.GetEmergencyIcon(incidentState?.emergencyType!)}
+                style={styles.markerIcon}
+              />
+            </View>
+          </Marker>
+        )}
+
+        {/* hospital marker */}
+        {hospitalCoords && (
+          <Marker
+            coordinate={hospitalCoords}
+            title={incidentState?.selectedHospital?.name || "Hospital"}
+            description={incidentState?.selectedHospital?.vicinity || ""}
+            anchor={{x: 0.5, y: 0.5}}>
+            <View style={styles.markerWrapper}>
+              <MaterialCommunityIcons
+                name="hospital-building"
+                size={30}
+                color="#E74C3C"
+              />
+            </View>
+          </Marker>
+        )}
 
         <MapViewDirections
           origin={responderCoords}
-          destination={incidentCoords}
+          destination={destinationCoords}
           apikey={GOOGLE_MAPS_API_KEY!}
           strokeWidth={4}
           strokeColor="#1a73e8"
@@ -281,8 +359,8 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   markerWrapper: {
-    width: 40,
-    height: 35,
+    width: 30,
+    height: 30,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",

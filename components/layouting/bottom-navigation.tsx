@@ -23,23 +23,29 @@ export default function BottomNavigation() {
     }
 
     try {
-      const callId = "fad-call2";
+      const callId = "fad-call";
       const callType = "default";
       const outgoingCall = client.call(callType, callId);
       await outgoingCall.getOrCreate({
         data: {
-          custom: {
-            incidentId: incidentState.incidentId,
-          },
           members: [
             {user_id: authState.user_id, role: "call_member"},
-            {user_id: incidentState.lgu._id, role: "call_member"},
+            {user_id: String(incidentState.lgu._id), role: "call_member"},
           ],
+          settings_override: {
+            audio: {mic_default_on: true, default_device: "speaker"},
+            // Keep video disabled, remove target_resolution
+            video: {camera_default_on: false, enabled: false},
+          },
         },
         ring: true,
       });
-      await outgoingCall.join();
-      router.push("/(responding)/audio-call");
+      // Don't join here, let the audio-call screen handle joining
+      // await outgoingCall.join();
+      router.push({
+        pathname: "/(responding)/audio-call",
+        params: {callId: callId},
+      }); // Pass callId
     } catch (err) {
       console.error("Failed to initiate call:", err);
       alert("Failed to start call. Please try again.");
@@ -58,9 +64,9 @@ export default function BottomNavigation() {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.tab} onPress={initiateAudioCall}>
+        {/* <TouchableOpacity style={styles.tab} onPress={initiateAudioCall}>
           <FontAwesome5 name="phone" size={24} color="white" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <TouchableOpacity
           style={styles.tab}

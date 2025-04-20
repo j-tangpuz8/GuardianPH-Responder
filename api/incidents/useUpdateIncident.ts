@@ -41,3 +41,29 @@ export const updateResponderStatus = async (
     responderStatus: status,
   });
 };
+
+export const updateIncidentHospital = async (
+  incidentId: string,
+  hospitalId: string
+): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_URL}/incidents/update/${incidentId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        hospitalId,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update incident with hospital");
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error updating incident hospital:", error);
+    return false;
+  }
+};

@@ -73,7 +73,7 @@ export default function RespondingHeader() {
         <TouchableOpacity
           style={styles.actionContainer2}
           onPress={handleVitalSignsPress2}>
-          <Text style={styles.actionText}>CONFIRM VITAL SIGNS</Text>
+          <Text style={styles.actionText}>PRE-HOSPITAL</Text>
         </TouchableOpacity>
       );
     } else {

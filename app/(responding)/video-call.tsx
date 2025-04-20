@@ -12,7 +12,6 @@ import Spinner from "react-native-loading-spinner-overlay";
 import Toast from "react-native-toast-message";
 
 const VideoCall = () => {
-  const {id} = useLocalSearchParams<{id: string}>();
   const [call, setCall] = useState<Call | null>(null);
   const client = useStreamVideoClient();
   const router = useRouter();
@@ -72,8 +71,7 @@ const VideoCall = () => {
   useEffect(() => {
     if (!client || call) return;
     const joinCall = async () => {
-      console.log("Joining Call with id", id);
-      const call = client.call("default", id);
+      const call = client.call("default", "fad-call");
       await call.join({create: false});
       setCall(call);
     };
