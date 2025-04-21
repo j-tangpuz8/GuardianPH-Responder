@@ -417,7 +417,9 @@ export default function VitalSigns() {
           onChangeText={(text) => handleChange("receivingDateTime", text)}
         />
 
-        <TouchableOpacity style={styles.handoverButton}>
+        <TouchableOpacity
+          style={styles.handoverButton}
+          onPress={() => router.replace("/(responding)")}>
           <Text style={styles.handoverButtonText}>HANDOVER</Text>
         </TouchableOpacity>
       </View>

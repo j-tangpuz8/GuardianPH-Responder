@@ -89,7 +89,6 @@ export const IncidentProvider = ({children}: any) => {
         const parsedData = JSON.parse(data);
         setIncidentState(parsedData);
 
-        // If there's a selectedHospitalId but no selectedHospital data, fetch it
         if (parsedData.selectedHospitalId && !parsedData.selectedHospital) {
           fetchHospitalData(parsedData.selectedHospitalId);
         }

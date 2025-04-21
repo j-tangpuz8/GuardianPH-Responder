@@ -15,6 +15,16 @@ export interface IncidentDetails {
   [key: string]: any;
 }
 
+export interface Hospital {
+  id: string;
+  name: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+  vicinity: string;
+}
+
 export interface Incident {
   _id: string;
   incidentType: string;
@@ -34,6 +44,7 @@ export interface Incident {
   channelId?: string;
   incidentDetails?: IncidentDetails;
   location?: IncidentLocation;
+  selectedHospitalId?: string | null;
   createdAt: string;
   updatedAt: string;
   [key: string]: any;

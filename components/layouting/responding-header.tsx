@@ -49,24 +49,11 @@ export default function RespondingHeader() {
 
     if (status === "onscene") {
       return (
-        <View
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-evenly",
-            gap: 2,
-          }}>
-          <TouchableOpacity
-            style={styles.actionContainer}
-            onPress={handlePatientDetailsPress}>
-            <Text style={styles.actionText}>PATIENT DETAILS</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionContainer}
-            onPress={handleVitalSignsPress}>
-            <Text style={styles.actionText}>VITAL SIGNS</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.actionContainer}
+          onPress={handlePatientDetailsPress}>
+          <Text style={styles.actionText}>PATIENT DETAILS</Text>
+        </TouchableOpacity>
       );
     } else if (status === "medicalFacility") {
       return (
@@ -77,19 +64,7 @@ export default function RespondingHeader() {
         </TouchableOpacity>
       );
     } else {
-      return (
-        <View style={styles.etaContainer}>
-          <View style={styles.etaItem}>
-            <Text style={styles.etaLabel}>ETA</Text>
-            <Text style={styles.etaValue}>4min</Text>
-          </View>
-          <Text style={styles.etaSeparator}>•</Text>
-          <View style={styles.etaItem}>
-            <Text style={styles.etaLabel}>DIS</Text>
-            <Text style={styles.etaValue}>600m</Text>
-          </View>
-        </View>
-      );
+      return null;
     }
   };
 
@@ -184,7 +159,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FF6B6B",
     padding: 10,
     alignItems: "center",
-    width: "50%",
+    width: "100%",
     justifyContent: "center",
   },
   actionContainer2: {

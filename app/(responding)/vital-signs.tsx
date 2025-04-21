@@ -159,7 +159,9 @@ export default function VitalSigns() {
       <View style={styles.spacer}></View>
 
       {/* save patient detailsv button */}
-      <TouchableOpacity style={styles.submitButton}>
+      <TouchableOpacity
+        style={styles.submitButton}
+        onPress={() => router.replace("/(responding)")}>
         <Text style={styles.submitButtonText}>SAVE</Text>
       </TouchableOpacity>
     </ScrollView>

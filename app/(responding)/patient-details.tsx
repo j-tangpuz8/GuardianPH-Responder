@@ -167,114 +167,123 @@ export default function PatientDetailsForm() {
       </View>
 
       {/* Explanation of Risks */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Explanation of Risks:</Text>
-        <Text style={styles.sectionText}>
-          I, the undersigned, understand that:
-        </Text>
-        <Text style={styles.sectionText}>
-          I have been advised by EMS personnel to be transported to a hospital
-          for further medical evaluation and/or treatment.
-        </Text>
-        <Text style={styles.sectionText}>
-          EMS personnel have explained the potential risks of refusing
-          transport, which may include serious health deterioration, permanent
-          injury, or death.
-        </Text>
-        <Text style={styles.sectionText}>
-          Refusing treatment or transport is against medical advice.
-        </Text>
-        <Text style={styles.sectionText}>
-          Despite this, I decline transport to a hospital by
-        </Text>
-      </View>
+      {patientData.refusesTransport && (
+        <>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Explanation of Risks:</Text>
+            <Text style={styles.sectionText}>
+              I, the undersigned, understand that:
+            </Text>
+            <Text style={styles.sectionText}>
+              I have been advised by EMS personnel to be transported to a
+              hospital for further medical evaluation and/or treatment.
+            </Text>
+            <Text style={styles.sectionText}>
+              EMS personnel have explained the potential risks of refusing
+              transport, which may include serious health deterioration,
+              permanent injury, or death.
+            </Text>
+            <Text style={styles.sectionText}>
+              Refusing treatment or transport is against medical advice.
+            </Text>
+            <Text style={styles.sectionText}>
+              Despite this, I decline transport to a hospital by
+            </Text>
+          </View>
 
-      {/* Acknowledgment */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Acknowledgment:</Text>
-        <Text style={styles.sectionText}>
-          I understand the risks and implications of my decision. I release the
-          EMS crew, ambulance service, and their affiliates from any liability
-          resulting from my refusal.
-        </Text>
+          {/* Acknowledgment */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Acknowledgment:</Text>
+            <Text style={styles.sectionText}>
+              I understand the risks and implications of my decision. I release
+              the EMS crew, ambulance service, and their affiliates from any
+              liability resulting from my refusal.
+            </Text>
 
-        <TextInput
-          style={[styles.input, styles.fullWidthInput]}
-          placeholder="Patient Signature"
-          value={patientData.patientSignature}
-          onChangeText={(text) => handleChange("patientSignature", text)}
-        />
+            <TextInput
+              style={[styles.input, styles.fullWidthInput]}
+              placeholder="Patient Signature"
+              value={patientData.patientSignature}
+              onChangeText={(text) => handleChange("patientSignature", text)}
+            />
 
-        <Text style={styles.dateText}>
-          {currentDate}, {currentTime}
-        </Text>
+            <Text style={styles.dateText}>
+              {currentDate}, {currentTime}
+            </Text>
 
-        <TextInput
-          style={[styles.input, styles.fullWidthInput]}
-          placeholder="Witness (EMS Personnel)"
-          value={patientData.witnessName}
-          onChangeText={(text) => handleChange("witnessName", text)}
-        />
+            <TextInput
+              style={[styles.input, styles.fullWidthInput]}
+              placeholder="Witness (EMS Personnel)"
+              value={patientData.witnessName}
+              onChangeText={(text) => handleChange("witnessName", text)}
+            />
 
-        <TextInput
-          style={[styles.input, styles.fullWidthInput]}
-          placeholder="ID/Badge No."
-          value={patientData.idBadge}
-          onChangeText={(text) => handleChange("idBadge", text)}
-        />
+            <TextInput
+              style={[styles.input, styles.fullWidthInput]}
+              placeholder="ID/Badge No."
+              value={patientData.idBadge}
+              onChangeText={(text) => handleChange("idBadge", text)}
+            />
 
-        <TextInput
-          style={[styles.input, styles.fullWidthInput]}
-          placeholder="Additional Witness (if any)"
-          value={patientData.additionalWitness}
-          onChangeText={(text) => handleChange("additionalWitness", text)}
-        />
+            <TextInput
+              style={[styles.input, styles.fullWidthInput]}
+              placeholder="Additional Witness (if any)"
+              value={patientData.additionalWitness}
+              onChangeText={(text) => handleChange("additionalWitness", text)}
+            />
 
-        <TextInput
-          style={[styles.input, styles.fullWidthInput]}
-          placeholder="Relationship"
-          value={patientData.relationship}
-          onChangeText={(text) => handleChange("relationship", text)}
-        />
+            <TextInput
+              style={[styles.input, styles.fullWidthInput]}
+              placeholder="Relationship"
+              value={patientData.relationship}
+              onChangeText={(text) => handleChange("relationship", text)}
+            />
 
-        <CustomCheckbox
-          value={patientData.advisedToSeekHelp}
-          onValueChange={(value) => handleChange("advisedToSeekHelp", value)}
-          label="Patient was advised to seek medical attention immediately if symptoms worsen."
-        />
+            <CustomCheckbox
+              value={patientData.advisedToSeekHelp}
+              onValueChange={(value) =>
+                handleChange("advisedToSeekHelp", value)
+              }
+              label="Patient was advised to seek medical attention immediately if symptoms worsen."
+            />
 
-        <CustomCheckbox
-          value={patientData.refusedToSign}
-          onValueChange={(value) => handleChange("refusedToSign", value)}
-          label="Patient refused to sign (explain below):"
-        />
+            <CustomCheckbox
+              value={patientData.refusedToSign}
+              onValueChange={(value) => handleChange("refusedToSign", value)}
+              label="Patient refused to sign (explain below):"
+            />
 
-        <TextInput
-          style={[styles.input, styles.fullWidthInput, styles.textArea]}
-          placeholder="Explain"
-          multiline
-          numberOfLines={3}
-          value={patientData.refusalExplanation}
-          onChangeText={(text) => handleChange("refusalExplanation", text)}
-        />
-      </View>
+            <TextInput
+              style={[styles.input, styles.fullWidthInput, styles.textArea]}
+              placeholder="Explain"
+              multiline
+              numberOfLines={3}
+              value={patientData.refusalExplanation}
+              onChangeText={(text) => handleChange("refusalExplanation", text)}
+            />
+          </View>
 
-      {/* Notes */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Notes:</Text>
-        <TextInput
-          style={[styles.input, styles.fullWidthInput, styles.textArea]}
-          placeholder="Explain"
-          multiline
-          numberOfLines={4}
-          value={patientData.notes}
-          onChangeText={(text) => handleChange("notes", text)}
-        />
-      </View>
+          {/* Notes */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Notes:</Text>
+            <TextInput
+              style={[styles.input, styles.fullWidthInput, styles.textArea]}
+              placeholder="Explain"
+              multiline
+              numberOfLines={4}
+              value={patientData.notes}
+              onChangeText={(text) => handleChange("notes", text)}
+            />
+          </View>
+        </>
+      )}
 
       {/* Submit Button */}
-      <TouchableOpacity style={styles.submitButton}>
-        <Text style={styles.submitButtonText}>Save Patient Details</Text>
+      <TouchableOpacity
+        style={styles.submitButton}
+        onPress={() => router.replace("/(responding)/vital-signs")}>
+        <Text style={styles.submitButtonText}>PROCEED</Text>
+        <Ionicons name="arrow-forward" size={24} color="white" />
       </TouchableOpacity>
 
       <View style={styles.spacer} />
@@ -363,10 +372,13 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     backgroundColor: "#4285F4",
-    padding: 15,
+    padding: 10,
     borderRadius: 5,
     margin: 20,
     alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
   },
   submitButtonText: {
     color: "white",

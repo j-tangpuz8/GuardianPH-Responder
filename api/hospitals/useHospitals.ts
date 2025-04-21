@@ -7,21 +7,30 @@ export const addHospitalAndUpdateIncident = async (
   incidentId: string
 ): Promise<{hospitalId: string; success: boolean}> => {
   try {
-    const checkResponse = await fetch(
-      `${API_URL}/hospitals/?name=${encodeURIComponent(
-        hospital.name
-      )}&address=${encodeURIComponent(hospital.vicinity)}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    const existingHospitals = await checkResponse.json();
+    // console.log("Hospital being processed:", JSON.stringify(hospital));
+
+    // Get all hospitals and filter manually
+    const allHospitalsResponse = await fetch(`${API_URL}/hospitals/`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const allHospitals = await allHospitalsResponse.json();
+    // console.log("All hospitals:", JSON.stringify(allHospitals));
+
+    // Find exact match by name
+    const exactMatch = allHospitals.find((h: any) => h.name === hospital.name);
+    // console.log(
+    //   "Exact match result:",
+    //   exactMatch ? JSON.stringify(exactMatch) : "No exact match"
+    // );
+
     let hospitalId;
 
-    if (!existingHospitals || existingHospitals.length === 0) {
+    if (!exactMatch) {
+      // console.log("Creating new hospital:", hospital.name);
       const createResponse = await fetch(`${API_URL}/hospitals/`, {
         method: "POST",
         headers: {
@@ -37,15 +46,30 @@ export const addHospitalAndUpdateIncident = async (
           phoneNumber: "",
         }),
       });
+
+      const responseText = await createResponse.text();
+      // console.log("Create hospital response:", responseText);
+
       if (!createResponse.ok) {
-        throw new Error("Failed to create hospital");
+        throw new Error(`Failed to create hospital: ${responseText}`);
       }
 
-      const newHospital = await createResponse.json();
-      hospitalId = newHospital._id;
+      try {
+        const newHospital = JSON.parse(responseText);
+        hospitalId = newHospital._id;
+        // console.log("New hospital created with ID:", hospitalId);
+      } catch (parseError) {
+        console.error("Error parsing hospital creation response:", parseError);
+        throw new Error("Invalid response format from hospital creation");
+      }
     } else {
-      hospitalId = existingHospitals[0]._id;
+      hospitalId = exactMatch._id;
+      console.log("Using existing hospital with ID:", hospitalId);
     }
+
+    // console.log("Updating incident with hospital ID:", hospitalId);
+    // console.log("Incident ID being updated:", incidentId);
+
     const updateResponse = await fetch(
       `${API_URL}/incidents/update/${incidentId}`,
       {
@@ -59,8 +83,13 @@ export const addHospitalAndUpdateIncident = async (
       }
     );
 
+    const updateResponseText = await updateResponse.text();
+    // console.log("Update incident response:", updateResponseText);
+
     if (!updateResponse.ok) {
-      throw new Error("Failed to update incident with hospital");
+      throw new Error(
+        `Failed to update incident with hospital: ${updateResponseText}`
+      );
     }
 
     return {hospitalId, success: true};

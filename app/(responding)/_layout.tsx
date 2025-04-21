@@ -62,7 +62,7 @@ export default function RespondingLayout() {
 
       {calls && calls.length > 0 && calls[0] ? (
         <StreamCall call={calls[0]}>
-          <RingingSound />
+          {/* <RingingSound /> */}
           <CallPanel />
         </StreamCall>
       ) : null}

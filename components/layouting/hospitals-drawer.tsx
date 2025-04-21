@@ -60,13 +60,6 @@ export default function MedicalFacilityDrawer({
       return;
     }
     try {
-      updateSelectedHospital({
-        id: hospital.id,
-        name: hospital.name,
-        location: hospital.location,
-        vicinity: hospital.vicinity,
-      });
-
       const result = await addHospitalAndUpdateIncident(
         hospital,
         incidentState.incidentId

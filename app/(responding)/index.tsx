@@ -43,23 +43,23 @@ const index = () => {
       : null;
   }, [lat, lon]);
 
-  // const incidentCoords = useMemo(() => {
-  //   return incidentState?.location?.lat && incidentState?.location?.lon
-  //     ? {
-  //         latitude: Number(incidentState.location.lat),
-  //         longitude: Number(incidentState.location.lon),
-  //       }
-  //     : null;
-  // }, [incidentState?.location?.lat, incidentState?.location?.lon]);
+  const incidentCoords = useMemo(() => {
+    return incidentState?.location?.lat && incidentState?.location?.lon
+      ? {
+          latitude: Number(incidentState.location.lat),
+          longitude: Number(incidentState.location.lon),
+        }
+      : null;
+  }, [incidentState?.location?.lat, incidentState?.location?.lon]);
 
   // temporary dummy incident coordinates for testing...
-  const incidentCoords = useMemo(
-    () => ({
-      latitude: 10.373,
-      longitude: 123.9545,
-    }),
-    []
-  );
+  // const incidentCoords = useMemo(
+  //   () => ({
+  //     latitude: 10.373,
+  //     longitude: 123.9545,
+  //   }),
+  //   []
+  // );
 
   // fetch selected hospital
   useEffect(() => {
@@ -74,7 +74,7 @@ const index = () => {
 
   // hospital coordinates
   const hospitalCoords = useMemo(() => {
-    if (incidentState?.selectedHospital) {
+    if (incidentState?.selectedHospital?.location) {
       return {
         latitude: incidentState.selectedHospital.location.lat,
         longitude: incidentState.selectedHospital.location.lng,
@@ -85,8 +85,16 @@ const index = () => {
 
   // Determine which destination to use
   const destinationCoords = useMemo(() => {
-    return hospitalCoords || incidentCoords;
-  }, [hospitalCoords, incidentCoords]);
+    if (
+      hospitalCoords &&
+      (incidentState?.responderStatus === "medicalFacility" ||
+        (incidentState?.responderStatus !== "enroute" &&
+          incidentState?.responderStatus !== "onscene"))
+    ) {
+      return hospitalCoords;
+    }
+    return incidentCoords;
+  }, [hospitalCoords, incidentCoords, incidentState?.responderStatus]);
 
   useFocusEffect(
     useCallback(() => {
@@ -106,15 +114,16 @@ const index = () => {
             incidentState?.location?.lat &&
             incidentState?.location?.lon
           ) {
-            const destLat = hospitalCoords?.latitude || incidentCoords.latitude;
+            const destLat =
+              hospitalCoords?.latitude || incidentCoords?.latitude;
             const destLon =
-              hospitalCoords?.longitude || incidentCoords.longitude;
+              hospitalCoords?.longitude || incidentCoords?.longitude;
 
-            const midLat = (locationData.latitude + destLat) / 2;
-            const midLon = (locationData.longitude + destLon) / 2;
+            const midLat = (locationData.latitude + destLat!) / 2;
+            const midLon = (locationData.longitude + destLon!) / 2;
 
-            const latDelta = Math.abs(locationData.latitude - destLat) * 1.5;
-            const lonDelta = Math.abs(locationData.longitude - destLon) * 1.5;
+            const latDelta = Math.abs(locationData.latitude - destLat!) * 1.5;
+            const lonDelta = Math.abs(locationData.longitude - destLon!) * 1.5;
 
             setMapRegion({
               latitude: midLat,
@@ -200,10 +209,10 @@ const index = () => {
     );
   }
 
-  console.log(
-    "Responding Screen - incidentState:",
-    JSON.stringify(incidentState, null, 2)
-  );
+  // console.log(
+  //   "Responding Screen - incidentState:",
+  //   JSON.stringify(incidentState, null, 2)
+  // );
 
   return (
     <View style={styles.container}>
@@ -256,10 +265,9 @@ const index = () => {
             description={incidentState?.selectedHospital?.vicinity || ""}
             anchor={{x: 0.5, y: 0.5}}>
             <View style={styles.markerWrapper}>
-              <MaterialCommunityIcons
-                name="hospital-building"
-                size={30}
-                color="#E74C3C"
+              <Image
+                source={require("@/assets/images/hospital.png")}
+                style={styles.markerIcon}
               />
             </View>
           </Marker>
@@ -267,7 +275,7 @@ const index = () => {
 
         <MapViewDirections
           origin={responderCoords}
-          destination={destinationCoords}
+          destination={destinationCoords!}
           apikey={GOOGLE_MAPS_API_KEY!}
           strokeWidth={4}
           strokeColor="#1a73e8"
@@ -283,31 +291,35 @@ const index = () => {
         />
       </MapView>
 
-      {/* Recenter button */}
-      <TouchableOpacity
-        style={styles.recenterButton}
-        onPress={() => {
-          if (mapRef.current && responderCoords) {
-            mapRef.current.animateToRegion(
-              {
-                ...responderCoords,
-                latitudeDelta: LATITUDE_DELTA,
-                longitudeDelta: LONGITUDE_DELTA,
-              },
-              1000
-            );
-          }
-        }}>
-        <Ionicons name="locate" size={24} color="#2196F3" />
-      </TouchableOpacity>
-
-      {/* distance info and eta */}
-      {distance && duration && (
-        <View style={styles.infoContainer}>
-          <Text style={styles.infoText}>Distance: {distance}</Text>
-          <Text style={styles.infoText}>ETA: {duration}</Text>
-        </View>
-      )}
+      {/* Recenter button and distance info */}
+      <View style={styles.topControlsContainer}>
+        {distance &&
+          duration &&
+          (incidentState?.responderStatus == "enroute" ||
+            incidentState?.responderStatus == "rtb") && (
+            <View style={styles.miniInfoContainer}>
+              <Text style={styles.miniInfoText}>
+                DIS: {distance} • ETA: {duration}
+              </Text>
+            </View>
+          )}
+        <TouchableOpacity
+          style={styles.recenterButton}
+          onPress={() => {
+            if (mapRef.current && responderCoords) {
+              mapRef.current.animateToRegion(
+                {
+                  ...responderCoords,
+                  latitudeDelta: LATITUDE_DELTA,
+                  longitudeDelta: LONGITUDE_DELTA,
+                },
+                1000
+              );
+            }
+          }}>
+          <Ionicons name="locate" size={24} color="#2196F3" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -373,9 +385,6 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
   recenterButton: {
-    position: "absolute",
-    right: 16,
-    top: 16,
     backgroundColor: "white",
     borderRadius: 30,
     padding: 12,
@@ -387,5 +396,32 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  topControlsContainer: {
+    position: "absolute",
+    right: 16,
+    top: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  miniInfoContainer: {
+    backgroundColor: "#FF6B6B",
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginRight: 15,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.5,
+    elevation: 2,
+  },
+  miniInfoText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#fff",
   },
 });

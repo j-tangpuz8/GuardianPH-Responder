@@ -111,6 +111,7 @@ export default function NewIncidentModal() {
 
         // context state
         if (setCurrentIncident) {
+          const existingHospital = incidentState?.selectedHospital;
           await setCurrentIncident({
             emergencyType: data.incidentType,
             channelId: data.channelId || "fad-call",
@@ -145,6 +146,7 @@ export default function NewIncidentModal() {
               lon: lon || undefined,
               address,
             },
+            selectedHospital: existingHospital,
             selectedHospitalId: data.selectedHospital || null,
           });
         }
@@ -200,11 +202,11 @@ export default function NewIncidentModal() {
           throw new Error("error getting responders location");
         }
 
-             // assign the responder
-             await assignResponder(currentIncident._id, authState?.user_id, {
-              lat: myLocation?.latitude,
-              lon: myLocation?.longitude,
-            });
+        // assign the responder
+        await assignResponder(currentIncident._id, authState?.user_id, {
+          lat: myLocation?.latitude,
+          lon: myLocation?.longitude,
+        });
 
         // set incidentState
         await setCurrentIncident({
@@ -220,6 +222,8 @@ export default function NewIncidentModal() {
             lon: currentIncident.incidentDetails?.coordinates?.lon,
             address: address || "Location unavailable",
           },
+          selectedHospital: currentIncident.selectedHospital,
+          selectedHospitalId: currentIncident.selectedHospitalId,
         });
 
         setVisible(false);
