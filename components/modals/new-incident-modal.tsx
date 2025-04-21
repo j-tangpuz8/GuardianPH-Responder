@@ -200,6 +200,12 @@ export default function NewIncidentModal() {
           throw new Error("error getting responders location");
         }
 
+             // assign the responder
+             await assignResponder(currentIncident._id, authState?.user_id, {
+              lat: myLocation?.latitude,
+              lon: myLocation?.longitude,
+            });
+
         // set incidentState
         await setCurrentIncident({
           emergencyType: currentIncident.incidentType,
