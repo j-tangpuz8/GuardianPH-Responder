@@ -11,6 +11,7 @@ import React, {useState} from "react";
 import {useIncident} from "@/context/IncidentContext";
 import {Ionicons} from "@expo/vector-icons";
 import {useRouter} from "expo-router";
+import * as SecureStore from "expo-secure-store";
 
 export default function PatientDetailsForm() {
   const {incidentState} = useIncident();
@@ -75,6 +76,24 @@ export default function PatientDetailsForm() {
       <Text style={styles.checkboxLabel}>{label}</Text>
     </View>
   );
+
+  const handleProceed = async () => {
+    try {
+      const essentialData = {
+        firstName: patientData.firstName,
+        lastName: patientData.lastName,
+        age: patientData.age,
+        gender: patientData.gender,
+      };
+      await SecureStore.setItemAsync(
+        "patientDetailsData",
+        JSON.stringify(essentialData)
+      );
+      router.replace("/(responding)/vital-signs");
+    } catch (error) {
+      console.error("Error saving patient details:", error);
+    }
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -279,9 +298,7 @@ export default function PatientDetailsForm() {
       )}
 
       {/* Submit Button */}
-      <TouchableOpacity
-        style={styles.submitButton}
-        onPress={() => router.replace("/(responding)/vital-signs")}>
+      <TouchableOpacity style={styles.submitButton} onPress={handleProceed}>
         <Text style={styles.submitButtonText}>PROCEED</Text>
         <Ionicons name="arrow-forward" size={24} color="white" />
       </TouchableOpacity>

@@ -5,17 +5,13 @@ import {
   TextInput,
   ScrollView,
   TouchableOpacity,
-  Pressable,
-  Image,
 } from "react-native";
 import React, {useState} from "react";
 import {Ionicons} from "@expo/vector-icons";
-import {useGetVolunteerInfo} from "@/hooks/useGetVolunteerInfo";
-import {useGetUserInfo} from "@/hooks/useGetUserInfo";
 import {useRouter} from "expo-router";
+import * as SecureStore from "expo-secure-store";
 
 export default function VitalSigns() {
-  const {volunteerInfo} = useGetVolunteerInfo();
   const [patientData, setPatientData] = useState({
     // vital sign formData
     bp: "",
@@ -36,6 +32,19 @@ export default function VitalSigns() {
     });
   };
 
+  const handleSave = async () => {
+    try {
+      // Save vital signs data to SecureStore
+      await SecureStore.setItemAsync(
+        "vitalSignsData",
+        JSON.stringify(patientData)
+      );
+      router.replace("/(responding)");
+    } catch (error) {
+      console.error("Error saving vital signs:", error);
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -51,11 +60,7 @@ export default function VitalSigns() {
       </View>
       {/* Patient info header */}
       <View style={styles.patientNameHeader}>
-        <Text style={styles.patientNameText}>
-          {volunteerInfo?.firstName?.toUpperCase()}{" "}
-          {volunteerInfo?.lastName?.toUpperCase()}
-        </Text>
-        <Text style={styles.textSubheading}>25 yrs old - Male</Text>
+        <Text style={styles.patientNameText}>Input values here:</Text>
       </View>
 
       {/* Vital Signs Form */}
@@ -159,9 +164,7 @@ export default function VitalSigns() {
       <View style={styles.spacer}></View>
 
       {/* save patient detailsv button */}
-      <TouchableOpacity
-        style={styles.submitButton}
-        onPress={() => router.replace("/(responding)")}>
+      <TouchableOpacity style={styles.submitButton} onPress={handleSave}>
         <Text style={styles.submitButtonText}>SAVE</Text>
       </TouchableOpacity>
     </ScrollView>

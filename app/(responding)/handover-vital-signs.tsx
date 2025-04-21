@@ -8,14 +8,14 @@ import {
   Pressable,
   Image,
 } from "react-native";
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import {Ionicons} from "@expo/vector-icons";
 import {useGetVolunteerInfo} from "@/hooks/useGetVolunteerInfo";
 import {useGetUserInfo} from "@/hooks/useGetUserInfo";
 import {useRouter} from "expo-router";
+import * as SecureStore from "expo-secure-store";
 
 export default function VitalSigns() {
-  const {volunteerInfo} = useGetVolunteerInfo();
   const {userInfo} = useGetUserInfo();
   const [patientData, setPatientData] = useState({
     firstName: "",
@@ -36,7 +36,11 @@ export default function VitalSigns() {
     temperature: "",
     bloodGlucose: "",
     painLevel: "",
-    levelOfConsciousness: "",
+    // enroute vital signs
+    bpEnroute: "",
+    hrEnroute: "",
+    rrEnroute: "",
+    spo2Enroute: "",
     // monitoring notes
     cardiacRhythm: "",
     pupilSize: "",
@@ -63,6 +67,41 @@ export default function VitalSigns() {
       [field]: value,
     });
   };
+
+  useEffect(() => {
+    const loadVitalSigns = async () => {
+      try {
+        const vitalSignsData = await SecureStore.getItemAsync("vitalSignsData");
+        const patientDetailsData = await SecureStore.getItemAsync(
+          "patientDetailsData"
+        );
+
+        if (vitalSignsData && patientDetailsData) {
+          const vitalSigns = JSON.parse(vitalSignsData);
+          const patientDetails = JSON.parse(patientDetailsData);
+
+          setPatientData((prevData) => ({
+            ...prevData,
+            firstName: patientDetails.firstName || "",
+            lastName: patientDetails.lastName || "",
+            age: patientDetails.age || "",
+            gender: patientDetails.gender || "",
+            bp: vitalSigns.bp || "",
+            hr: vitalSigns.hr || "",
+            rr: vitalSigns.rr || "",
+            spo2: vitalSigns.spo2 || "",
+            temperature: vitalSigns.temperature || "",
+            gcs: vitalSigns.bloodGlucose || "",
+            painScore: vitalSigns.painLevel || "",
+          }));
+        }
+      } catch (error) {
+        console.error("Error loading vital signs:", error);
+      }
+    };
+
+    loadVitalSigns();
+  }, []);
 
   const CustomCheckbox = ({
     value,
@@ -104,8 +143,8 @@ export default function VitalSigns() {
         <View style={styles.patientInfoRow}>
           <Text style={styles.patientInfoLabel}>FULL NAME:</Text>
           <Text style={styles.patientInfoValue}>
-            {volunteerInfo?.firstName?.toUpperCase()}{" "}
-            {volunteerInfo?.lastName?.toUpperCase()}
+            {patientData?.firstName?.toUpperCase()}{" "}
+            {patientData?.lastName?.toUpperCase()}
           </Text>
         </View>
         <View style={styles.patientInfoRow}>
@@ -224,60 +263,58 @@ export default function VitalSigns() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Vital Signs on Scene:</Text>
 
-        <View style={styles.vitalSignsRow}>
-          <View style={styles.vitalSignItem}>
-            <Text style={styles.vitalSignsLabel}>BP:</Text>
+        <View style={styles.compactVitalSignsContainer}>
+          <View style={styles.compactVitalSignItem}>
+            <Text style={styles.compactVitalLabel}>BP:</Text>
             <TextInput
-              style={styles.vitalSignsInput}
+              style={styles.compactVitalInput}
               value={patientData.bp}
               onChangeText={(text) => handleChange("bp", text)}
             />
           </View>
 
-          <View style={styles.vitalSignItem}>
-            <Text style={styles.vitalSignsLabel}>HR:</Text>
+          <View style={styles.compactVitalSignItem}>
+            <Text style={styles.compactVitalLabel}>HR:</Text>
             <TextInput
-              style={styles.vitalSignsInput}
+              style={styles.compactVitalInput}
               value={patientData.hr}
               onChangeText={(text) => handleChange("hr", text)}
             />
           </View>
 
-          <View style={styles.vitalSignItem}>
-            <Text style={styles.vitalSignsLabel}>RR:</Text>
+          <View style={styles.compactVitalSignItem}>
+            <Text style={styles.compactVitalLabel}>RR:</Text>
             <TextInput
-              style={styles.vitalSignsInput}
+              style={styles.compactVitalInput}
               value={patientData.rr}
               onChangeText={(text) => handleChange("rr", text)}
             />
           </View>
-        </View>
 
-        <View style={styles.vitalSignsRow}>
-          <View style={styles.vitalSignItem}>
-            <Text style={styles.vitalSignsLabel}>SpO₂:</Text>
+          <View style={styles.compactVitalSignItem}>
+            <Text style={styles.compactVitalLabel}>SpO₂:</Text>
             <TextInput
-              style={styles.vitalSignsInput}
+              style={styles.compactVitalInput}
               placeholder="%"
               value={patientData.spo2}
               onChangeText={(text) => handleChange("spo2", text)}
             />
           </View>
 
-          <View style={styles.vitalSignItem}>
-            <Text style={styles.vitalSignsLabel}>GCS:</Text>
+          <View style={styles.compactVitalSignItem}>
+            <Text style={styles.compactVitalLabel}>GCS:</Text>
             <TextInput
-              style={styles.vitalSignsInput}
+              style={styles.compactVitalInput}
               placeholder="/15"
               value={patientData.gcs}
               onChangeText={(text) => handleChange("gcs", text)}
             />
           </View>
 
-          <View style={styles.vitalSignItem}>
-            <Text style={styles.vitalSignsLabel}>Pain:</Text>
+          <View style={styles.compactVitalSignItem}>
+            <Text style={styles.compactVitalLabel}>Pain:</Text>
             <TextInput
-              style={styles.vitalSignsInput}
+              style={styles.compactVitalInput}
               placeholder="/10"
               value={patientData.painScore}
               onChangeText={(text) => handleChange("painScore", text)}
@@ -294,8 +331,8 @@ export default function VitalSigns() {
               <Text style={styles.enRouteLabel}>BP:</Text>
               <TextInput
                 style={styles.enRouteInput}
-                value={patientData.bp}
-                onChangeText={(text) => handleChange("bp", text)}
+                value={patientData.bpEnroute}
+                onChangeText={(text) => handleChange("bpEnroute", text)}
                 placeholder="mmHg"
                 placeholderTextColor="#7f8c8d"
               />
@@ -305,8 +342,8 @@ export default function VitalSigns() {
               <Text style={styles.enRouteLabel}>HR:</Text>
               <TextInput
                 style={styles.enRouteInput}
-                value={patientData.hr}
-                onChangeText={(text) => handleChange("hr", text)}
+                value={patientData.hrEnroute}
+                onChangeText={(text) => handleChange("hrEnroute", text)}
                 placeholder="bpm"
                 placeholderTextColor="#7f8c8d"
                 keyboardType="numeric"
@@ -317,8 +354,8 @@ export default function VitalSigns() {
               <Text style={styles.enRouteLabel}>RR:</Text>
               <TextInput
                 style={styles.enRouteInput}
-                value={patientData.rr}
-                onChangeText={(text) => handleChange("rr", text)}
+                value={patientData.rrEnroute}
+                onChangeText={(text) => handleChange("rrEnroute", text)}
                 placeholder="bpm"
                 placeholderTextColor="#7f8c8d"
                 keyboardType="numeric"
@@ -329,8 +366,8 @@ export default function VitalSigns() {
               <Text style={styles.enRouteLabel}>SpO₂:</Text>
               <TextInput
                 style={styles.enRouteInput}
-                value={patientData.spo2}
-                onChangeText={(text) => handleChange("spo2", text)}
+                value={patientData.spo2Enroute}
+                onChangeText={(text) => handleChange("spo2Enroute", text)}
                 placeholder="%"
                 placeholderTextColor="#7f8c8d"
                 keyboardType="numeric"
@@ -622,27 +659,32 @@ const styles = StyleSheet.create({
     color: "white",
     flex: 1,
   },
-  vitalSignsRow: {
+  compactVitalSignsContainer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
-    marginVertical: 8,
+    paddingHorizontal: 5,
   },
-  vitalSignItem: {
-    flex: 1,
+  compactVitalSignItem: {
+    width: "30%",
+    flexDirection: "row",
     alignItems: "center",
+    marginVertical: 4,
   },
-  vitalSignsLabel: {
+  compactVitalLabel: {
     color: "white",
-    marginBottom: 5,
     fontSize: 14,
     fontWeight: "bold",
+    width: 45,
   },
-  vitalSignsInput: {
+  compactVitalInput: {
     backgroundColor: "white",
-    padding: 5,
-    width: 70,
+    padding: 3,
+    paddingHorizontal: 5,
     borderRadius: 3,
-    textAlign: "center",
+    flex: 1,
+    height: 28,
+    fontSize: 14,
   },
   inputWithUnit: {
     flexDirection: "row",

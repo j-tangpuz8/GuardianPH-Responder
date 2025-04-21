@@ -161,7 +161,12 @@ export const IncidentProvider = ({children}: any) => {
 
   const clearIncident = async () => {
     try {
-      await SecureStore.deleteItemAsync(INCIDENT_KEY);
+      await Promise.all([
+        SecureStore.deleteItemAsync(INCIDENT_KEY),
+        SecureStore.deleteItemAsync("vitalSignsData"),
+        SecureStore.deleteItemAsync("patientDetailsData"),
+      ]);
+
       setIncidentState(null);
     } catch (error) {
       console.error("Error clearing incident:", error);
