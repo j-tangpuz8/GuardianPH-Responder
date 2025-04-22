@@ -50,10 +50,14 @@ export default function CloseIncidentDrawer({
   if (!visible) return null;
 
   const handleSubmit = async () => {
-    onClose();
-    clearIncident!();
-    console.log("incidentState cleared!");
-    router.replace("/lib");
+    try {
+      onClose();
+      await clearIncident!();
+      console.log("incidentState cleared!");
+      router.replace("/lib");
+    } catch (error) {
+      console.error("Error clearing incident:", error);
+    }
   };
 
   const renderStars = () => {

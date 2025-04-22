@@ -34,10 +34,10 @@ export default function UpdateStatusModal({
 
   useEffect(() => {
     if (incidentState?.responderStatus) {
-      console.log(
-        "Modal: Current responder status:",
-        incidentState.responderStatus
-      );
+      // console.log(
+      //   "Modal: Current responder status:",
+      //   incidentState.responderStatus
+      // );
       const statusMapping: {[key: string]: string} = {
         enroute: "enroute",
         onscene: "onscene",
@@ -46,7 +46,7 @@ export default function UpdateStatusModal({
       };
       const mappedStatus =
         statusMapping[incidentState.responderStatus] || "enroute";
-      console.log("Modal: Setting status to", mappedStatus);
+      // console.log("Modal: Setting status to", mappedStatus);
       setCurrentStatus(mappedStatus);
     }
   }, [incidentState?.responderStatus]);

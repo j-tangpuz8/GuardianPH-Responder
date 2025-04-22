@@ -19,10 +19,6 @@ export default function CheckInPage() {
   const {authState} = useAuth();
   const {userInfo, loading, error} = useGetUserInfo();
 
-  // useEffect(() => {
-  //   clearDeniedIncidents!();
-  // }, []);
-
   const handleClick = () => {
     setIsOnline(!isOnline);
   };
@@ -75,6 +71,20 @@ export default function CheckInPage() {
                 {isOnline ? "Check-Out" : "Check-In"}
               </Text>
             </TouchableOpacity>
+            {!isOnline && (
+              <>
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={() => clearDeniedIncidents()}>
+                  <Text style={styles.clearButtonWarning}>
+                    *For testing purposes only
+                  </Text>
+                  <Text style={styles.clearButtonText}>
+                    CLEAR DENIED INCIDENTS LIST
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
       </Modal>
@@ -85,6 +95,23 @@ export default function CheckInPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  clearButton: {
+    backgroundColor: "#E5E4E2",
+    padding: 8,
+    borderRadius: 5,
+    marginTop: 20,
+    alignItems: "center",
+  },
+  clearButtonText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  clearButtonWarning: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "red",
+    fontStyle: "italic",
   },
   map: {
     width: "100%",

@@ -11,12 +11,12 @@ export default function RespondingHeader() {
 
   useEffect(() => {
     if (incidentState?.responderStatus) {
-      console.log("Header: Setting status to", incidentState.responderStatus);
+      // console.log("Header: Setting status to", incidentState.responderStatus);
       setCurrentStatus(incidentState.responderStatus);
     } else {
-      console.log(
-        "No responderStatus found in incidentState, defaulting to enroute"
-      );
+      // console.log(
+      //   "No responderStatus found in incidentState, defaulting to enroute"
+      // );
       setCurrentStatus("enroute");
     }
   }, [incidentState]);
