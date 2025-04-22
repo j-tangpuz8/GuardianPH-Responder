@@ -52,9 +52,7 @@ export default function CloseIncidentDrawer({
   const handleSubmit = async () => {
     try {
       onClose();
-      await clearIncident!();
-      console.log("incidentState cleared!");
-      router.replace("/lib");
+      router.push("/(responding)/pending-close");
     } catch (error) {
       console.error("Error clearing incident:", error);
     }

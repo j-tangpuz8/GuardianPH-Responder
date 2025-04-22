@@ -1,7 +1,6 @@
 import {
   View,
   Text,
-  Modal,
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -11,7 +10,10 @@ import {
 import React, {useEffect, useRef, useState} from "react";
 import CloseIncidentDrawer from "./close-incident-drawer";
 import MedicalFacilityDrawer from "./hospitals-drawer";
-import {updateResponderStatus} from "@/api/incidents/useUpdateIncident";
+import {
+  updateResponderStatus,
+  requestCloseIncident,
+} from "@/api/incidents/useUpdateIncident";
 import {useIncident} from "@/context/IncidentContext";
 
 interface UpdateStatusModalProps {
@@ -43,6 +45,7 @@ export default function UpdateStatusModal({
         onscene: "onscene",
         medicalFacility: "medical",
         rtb: "return",
+        close: "close",
       };
       const mappedStatus =
         statusMapping[incidentState.responderStatus] || "enroute";
@@ -73,6 +76,11 @@ export default function UpdateStatusModal({
 
     try {
       if (status === "close") {
+        await requestCloseIncident(incidentState.incidentId);
+        await setCurrentIncident({
+          ...incidentState,
+          responderStatus: "close",
+        });
         setCloseIncidentVisible(true);
       } else if (status === "medical") {
         await updateResponderStatus(
@@ -160,7 +168,7 @@ export default function UpdateStatusModal({
                 )}
               </TouchableOpacity>
 
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={[
                   styles.statusButton,
                   currentStatus === "return" && styles.activeButton,
@@ -178,7 +186,7 @@ export default function UpdateStatusModal({
                     (CURRENT)
                   </Text>
                 )}
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
               <TouchableOpacity
                 style={[

@@ -114,7 +114,6 @@ export default function NewIncidentModal() {
           const existingHospital = incidentState?.selectedHospital;
           await setCurrentIncident({
             emergencyType: data.incidentType,
-            channelId: data.channelId || "fad-call",
             incidentId: data._id,
             user: data.user,
             dispatcher: data.dispatcher
@@ -211,7 +210,6 @@ export default function NewIncidentModal() {
         // set incidentState
         await setCurrentIncident({
           emergencyType: currentIncident.incidentType,
-          channelId: currentIncident.channelId,
           incidentId: currentIncident._id,
           user: currentIncident.user,
           dispatcher: currentIncident.dispatcher,

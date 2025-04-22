@@ -8,10 +8,12 @@ import RingingSound from "@/components/calls/RingingSound";
 
 export default function RespondingLayout() {
   const pathname = usePathname();
-  const isCallScreen = pathname.includes("call");
+  const isCallScreen =
+    pathname.includes("call") || pathname.includes("pending-close");
   const isDetailScreen =
     pathname.includes("patient-details") ||
     pathname.includes("vital-signs") ||
+    pathname.includes("pending-close") ||
     pathname.includes("handover-vital-signs");
   const calls = useCalls();
 
@@ -55,6 +57,13 @@ export default function RespondingLayout() {
           options={{
             headerShown: true,
             title: "Vital Signs",
+          }}
+        />
+
+        <Stack.Screen
+          name="pending-close"
+          options={{
+            headershown: false,
           }}
         />
       </Stack>

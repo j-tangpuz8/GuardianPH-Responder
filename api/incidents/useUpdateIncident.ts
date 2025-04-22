@@ -33,6 +33,7 @@ export const assignResponder = async (
   });
 };
 
+// update status of the responder
 export const updateResponderStatus = async (
   incidentId: string,
   status: "enroute" | "onscene" | "medicalFacility" | "rtb" | "close"
@@ -42,6 +43,16 @@ export const updateResponderStatus = async (
   });
 };
 
+// request close incident
+export const requestCloseIncident = async (
+  incidentId: string
+): Promise<any> => {
+  return updateIncident(incidentId, {
+    responderStatus: "close",
+  });
+};
+
+// update the medical facility
 export const updateIncidentHospital = async (
   incidentId: string,
   hospitalId: string

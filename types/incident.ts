@@ -31,6 +31,7 @@ export interface Incident {
   isVerified: boolean;
   isResolved: boolean;
   isAccepted: boolean;
+  isFinished: boolean;
   acceptedAt: string | null;
   resolvedAt: string | null;
   user: string;
@@ -39,9 +40,13 @@ export interface Incident {
   lguStatus: "idle" | "connecting" | "connected";
   responder?: string | null;
   isAcceptedResponder: boolean;
-  responderStatus?: 1 | 2 | 3 | 4 | null;
-  rating?: 1 | 2 | 3 | 4 | 5 | null;
-  channelId?: string;
+  responderStatus?:
+    | "enroute"
+    | "onscene"
+    | "medicalFacility"
+    | "rtb"
+    | "close"
+    | null;
   incidentDetails?: IncidentDetails;
   location?: IncidentLocation;
   selectedHospitalId?: string | null;

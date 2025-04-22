@@ -4,7 +4,7 @@ import {createContext, useContext, useEffect, useState} from "react";
 
 interface IncidentData {
   emergencyType: string;
-  channelId: string;
+  isFinished?: boolean;
   incidentId: string;
   user: string | null;
   dispatcher?: {
