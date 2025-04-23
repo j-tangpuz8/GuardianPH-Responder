@@ -296,7 +296,7 @@ const index = () => {
         {distance &&
           duration &&
           (incidentState?.responderStatus == "enroute" ||
-            incidentState?.responderStatus == "rtb") && (
+            incidentState?.responderStatus == "medicalFacility") && (
             <View style={styles.miniInfoContainer}>
               <Text style={styles.miniInfoText}>
                 DIS: {distance} • ETA: {duration}

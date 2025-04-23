@@ -214,7 +214,7 @@ export default function NewIncidentModal() {
           user: currentIncident.user,
           dispatcher: currentIncident.dispatcher,
           lgu: currentIncident.lgu,
-          responderStatus: currentIncident?.responderStatus,
+          responderStatus: currentIncident?.responderStatus || "enroute",
           location: {
             lat: currentIncident.incidentDetails?.coordinates?.lat,
             lon: currentIncident.incidentDetails?.coordinates?.lon,
