@@ -26,7 +26,7 @@ export const useGetUserInfo = () => {
 
       try {
         const response = await fetch(
-          `${process.env.EXPO_PUBLIC_API_URL}/users/${authState.user_id}`
+          `${process.env.EXPO_PUBLIC_API_URL}/responders/${authState.user_id}`
         );
 
         if (!response.ok) {
