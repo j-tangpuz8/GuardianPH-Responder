@@ -8,30 +8,15 @@ import {
 import React, {useEffect} from "react";
 import {useIncident} from "@/context/IncidentContext";
 import {useRouter} from "expo-router";
-import {useFetchIncidentStatus} from "@/hooks/useFetchIncidentStatus";
+import {useFetchIncidentStatus} from "@/api/incidents/useFetchIncidentStatus";
 
 export default function WaitingApprovalScreen() {
   const {incidentState, clearIncident} = useIncident();
   const router = useRouter();
-  const {isFinished, loading, error, fetchStatus} = useFetchIncidentStatus(
-    incidentState?.incidentId
-  );
+  const {data: incidentData} = useFetchIncidentStatus(incidentState?._id || "");
+  const isFinished = incidentData?.isFinished;
+  const error = incidentData?.error;
 
-  // Poll for status changes
-  useEffect(() => {
-    if (!incidentState?.incidentId) {
-      router.replace("/lib");
-      return;
-    }
-
-    const intervalId = setInterval(() => {
-      fetchStatus();
-    }, 5000); // Check every 5 seconds
-
-    return () => clearInterval(intervalId);
-  }, [incidentState?.incidentId, fetchStatus]);
-
-  // when isFinished = true, clearIncident and go back to home
   useEffect(() => {
     if (isFinished) {
       const handleFinished = async () => {

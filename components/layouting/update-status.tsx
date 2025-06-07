@@ -9,12 +9,13 @@ import {
 } from "react-native";
 import React, {useEffect, useRef, useState} from "react";
 import CloseIncidentDrawer from "./close-incident-drawer";
-import MedicalFacilityDrawer from "./hospitals-drawer";
+import FacilityDrawer from "./facilities-drawer";
 import {
   updateResponderStatus,
   requestCloseIncident,
 } from "@/api/incidents/useUpdateIncident";
 import {useIncident} from "@/context/IncidentContext";
+import {STYLING_CONFIG} from "@/constants/styling-config";
 
 interface UpdateStatusModalProps {
   visible: boolean;
@@ -31,25 +32,19 @@ export default function UpdateStatusModal({
   const [currentStatus, setCurrentStatus] = useState<string | null>(null);
   const [closeIncidentVisible, setCloseIncidentVisible] =
     useState<boolean>(false);
-  const [showHospitals, setShowHospitals] = useState<boolean>(false);
+  const [showFacilities, setShowFacilities] = useState<boolean>(false);
   const {incidentState, setCurrentIncident} = useIncident();
 
   useEffect(() => {
     if (incidentState?.responderStatus) {
-      // console.log(
-      //   "Modal: Current responder status:",
-      //   incidentState.responderStatus
-      // );
       const statusMapping: {[key: string]: string} = {
         enroute: "enroute",
         onscene: "onscene",
-        medicalFacility: "medical",
-        rtb: "return",
-        close: "close",
+        facility: "facility",
+        rtb: "rtb",
       };
       const mappedStatus =
         statusMapping[incidentState.responderStatus] || "enroute";
-      // console.log("Modal: Setting status to", mappedStatus);
       setCurrentStatus(mappedStatus);
     }
   }, [incidentState?.responderStatus]);
@@ -72,36 +67,30 @@ export default function UpdateStatusModal({
   if (!visible) return null;
 
   const handleStatusPress = async (status: string) => {
-    if (!incidentState?.incidentId || !setCurrentIncident) return;
+    if (!incidentState?._id || !setCurrentIncident) return;
 
     try {
-      if (status === "close") {
-        await requestCloseIncident(incidentState.incidentId);
+      if (status === "rtb") {
+        await requestCloseIncident(incidentState._id);
         await setCurrentIncident({
           ...incidentState,
-          responderStatus: "close",
+          responderStatus: "rtb",
         });
         setCloseIncidentVisible(true);
-      } else if (status === "medical") {
-        await updateResponderStatus(
-          incidentState.incidentId,
-          "medicalFacility"
-        );
+      } else if (status === "facility") {
+        await updateResponderStatus(incidentState._id, "facility");
         setCurrentStatus(status);
         await setCurrentIncident({
           ...incidentState,
-          responderStatus: "medicalFacility",
+          responderStatus: "facility",
         });
-        setShowHospitals(true);
+        setShowFacilities(true);
       } else {
         const statusMap: {[key: string]: any} = {
           onscene: "onscene",
-          return: "rtb",
+          enroute: "enroute",
         };
-        await updateResponderStatus(
-          incidentState.incidentId,
-          statusMap[status]
-        );
+        await updateResponderStatus(incidentState._id, statusMap[status]);
         setCurrentStatus(status);
         await setCurrentIncident({
           ...incidentState,
@@ -129,11 +118,11 @@ export default function UpdateStatusModal({
               <Text style={styles.title}>UPDATE STATUS</Text>
 
               <TouchableOpacity
+                onPress={() => handleStatusPress("onscene")}
                 style={[
                   styles.statusButton,
                   currentStatus === "onscene" && styles.activeButton,
-                ]}
-                onPress={() => handleStatusPress("onscene")}>
+                ]}>
                 <Text
                   style={[
                     styles.statusText,
@@ -148,63 +137,55 @@ export default function UpdateStatusModal({
                 )}
               </TouchableOpacity>
 
+              {/*//// for fire incidents only /////*/}
+              {incidentState?.incidentType == "Fire" && (
+                <TouchableOpacity style={styles.statusButton}>
+                  <Text style={styles.statusText}>ALARM LEVEL</Text>
+
+                  <Text style={{color: "white"}}>(FIRST ALARM)</Text>
+                </TouchableOpacity>
+              )}
+              {/*//// for fire incidents only /////*/}
+
               <TouchableOpacity
+                onPress={() => handleStatusPress("facility")}
                 style={[
                   styles.statusButton,
-                  currentStatus === "medical" && styles.activeButton,
-                ]}
-                onPress={() => handleStatusPress("medical")}>
+                  currentStatus === "facility" && styles.activeButton,
+                ]}>
                 <Text
                   style={[
                     styles.statusText,
-                    currentStatus === "medical" && styles.activeText,
+                    currentStatus === "facility" && styles.activeText,
                   ]}>
-                  MEDICAL FACILITY
+                  {incidentState?.incidentType == "Fire"
+                    ? "FIRE HYDRANTS"
+                    : "MEDICAL FACILITY"}
                 </Text>
-                {currentStatus === "medical" && (
+                {currentStatus === "facility" && (
                   <Text style={[styles.statusSubtext, styles.activeText]}>
                     (CURRENT)
                   </Text>
                 )}
               </TouchableOpacity>
 
-              {/* <TouchableOpacity
-                style={[
-                  styles.statusButton,
-                  currentStatus === "return" && styles.activeButton,
-                ]}
-                onPress={() => handleStatusPress("return")}>
-                <Text
-                  style={[
-                    styles.statusText,
-                    currentStatus === "return" && styles.activeText,
-                  ]}>
-                  RETURN TO BASE
-                </Text>
-                {currentStatus === "return" && (
-                  <Text style={[styles.statusSubtext, styles.activeText]}>
-                    (CURRENT)
-                  </Text>
-                )}
-              </TouchableOpacity> */}
-
               <TouchableOpacity
+                onPress={() => handleStatusPress("rtb")}
                 style={[
                   styles.statusButton,
-                  currentStatus === "close" && styles.activeButton,
-                ]}
-                onPress={() => handleStatusPress("close")}>
+                  currentStatus === "rtb" && styles.activeButton,
+                ]}>
                 <Text
                   style={[
                     styles.statusText,
-                    currentStatus === "close" && styles.activeText,
+                    currentStatus === "rtb" && styles.activeText,
                   ]}>
                   CLOSE INCIDENT
                 </Text>
 
-                {currentStatus === "close" && (
+                {currentStatus === "rtb" && (
                   <Text style={[styles.statusSubtext, styles.activeText]}>
-                    (CURRENT)
+                    (RTB)
                   </Text>
                 )}
               </TouchableOpacity>
@@ -219,11 +200,14 @@ export default function UpdateStatusModal({
           onClose={() => setCloseIncidentVisible(false)}
         />
       )}
-      {showHospitals && (
-        <MedicalFacilityDrawer
-          visible={showHospitals}
-          onClose={() => setShowHospitals(false)}
-          onSelectFacility={() => setCurrentStatus("medical")}
+      {showFacilities && (
+        <FacilityDrawer
+          visible={showFacilities}
+          onClose={() => setShowFacilities(false)}
+          onSelectFacility={() => setCurrentStatus("facility")}
+          facilityType={
+            incidentState?.incidentType as keyof typeof STYLING_CONFIG
+          }
         />
       )}
     </>

@@ -15,6 +15,7 @@ export const updateIncident = async (id: string, data: any): Promise<any> => {
     }
 
     return await response.json();
+    console.log("response", response);
   } catch (error: any) {
     console.error("Error updating incident: ", error);
     throw error;
@@ -36,7 +37,7 @@ export const assignResponder = async (
 // update status of the responder
 export const updateResponderStatus = async (
   incidentId: string,
-  status: "enroute" | "onscene" | "medicalFacility" | "rtb" | "close"
+  status: "enroute" | "onscene" | "facility" | "rtb"
 ): Promise<any> => {
   return updateIncident(incidentId, {
     responderStatus: status,

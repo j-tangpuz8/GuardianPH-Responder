@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Animated,
 } from "react-native";
-import React, {useState, useEffect, useRef, useMemo} from "react";
+import React, {useState, useEffect, useRef, useMemo, useCallback} from "react";
 import {useIncident} from "@/context/IncidentContext";
 import {useCheckIn} from "@/context/CheckInContext";
 import all from "@/utils/getIcon";
@@ -16,221 +16,197 @@ import DenyIncidentModal from "./deny-incident-modal";
 import {useRouter} from "expo-router";
 import {assignResponder} from "@/api/incidents/useUpdateIncident";
 import {
-  fetchRecentIncident,
+  useIncidentForResponder,
   denyIncident,
 } from "@/api/incidents/useFetchIncident";
 import {useAuth} from "@/context/AuthContext";
 import useLocation from "@/hooks/useLocation";
 import {useSound} from "@/utils/PlaySound";
+import {Incident} from "@/types/incident";
 
-export default function NewIncidentModal() {
-  const {incidentState, setCurrentIncident, clearIncident} = useIncident();
+export default function NewIncidentModal({sounds}: {sounds: any}) {
+  const {setCurrentIncident} = useIncident();
   const {authState} = useAuth();
   const {isOnline} = useCheckIn();
   const {getUserLocation, getAddressFromCoords} = useLocation();
   const [visible, setVisible] = useState(false);
-  const [currentIncident, setCurrentIncidentState] = useState<any>(null);
   const shakeStyle = useShakeAnimation(visible);
   const [showDenyModal, setShowDenyModal] = useState(false);
   const [isDenying, setIsDenying] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const router = useRouter();
-  const medicalSound = useSound(require("@/assets/sounds/ambulance.mp3"));
-  const policeSound = useSound(require("@/assets/sounds/police.mp3"));
-  const fireSound = useSound(require("@/assets/sounds/fire.mp3"));
-  const generalSound = useSound(require("@/assets/sounds/general.mp3"));
+  const [address, setAddress] = useState<string | null>(null);
+  const [currentIncidentIndex, setCurrentIncidentIndex] = useState(0);
 
-  const sounds = useMemo(
-    () => ({
-      medical: medicalSound,
-      police: policeSound,
-      fire: fireSound,
-      general: generalSound,
-    }),
-    [medicalSound, policeSound, fireSound, generalSound]
+  const {data: incidents = []} = useIncidentForResponder(
+    authState?.user_id || ""
+  );
+  const currentIncident = incidents[currentIncidentIndex];
+
+  const soundState = useRef({
+    hasPlayed: false,
+    currentSound: null as any,
+  });
+
+  const getIncidentSound = useCallback(
+    (incidentType: string) => {
+      if (!sounds) return null;
+
+      const type = incidentType || "";
+      if (type.includes("Medical")) return sounds.medical;
+      if (type.includes("Police")) return sounds.police;
+      if (type.includes("Fire")) return sounds.fire;
+      return sounds.general;
+    },
+    [sounds]
   );
 
-  const hasPlayedSound = useRef(false);
-  const deniedIncidents = useRef<Set<string>>(new Set());
-  const getIncidentSound = (incidentType: string) => {
-    const type = incidentType || "";
+  const stopAllSounds = useCallback(async () => {
+    try {
+      const soundPromises = [];
 
-    if (type.includes("Medical")) return sounds.medical;
-    if (type.includes("Police")) return sounds.police;
-    if (type.includes("Fire")) return sounds.fire;
-    return sounds.general;
-  };
-
-  const stopAllSounds = () => {
-    sounds.medical.stopSound();
-    sounds.police.stopSound();
-    sounds.fire.stopSound();
-    sounds.general.stopSound();
-  };
-
-  useEffect(() => {
-    if (visible && currentIncident && !hasPlayedSound.current) {
-      const {playSound} = getIncidentSound(currentIncident.incidentType);
-      playSound();
-      hasPlayedSound.current = true;
-    }
-
-    if (!visible) {
-      stopAllSounds();
-      hasPlayedSound.current = false;
-    }
-  }, [visible, currentIncident, sounds]);
-
-  useEffect(() => {
-    if (!isOnline || isDenying || isAssigning) {
-      setVisible(false);
-      return;
-    }
-
-    const fetchIncident = async () => {
-      try {
-        const data = await fetchRecentIncident();
-
-        if (!data) {
-          setVisible(false);
-          return;
-        }
-
-        if (deniedIncidents.current.has(data._id)) {
-          setVisible(false);
-          return;
-        }
-
-        const lat = data.incidentDetails?.coordinates?.lat;
-        const lon = data.incidentDetails?.coordinates?.lon;
-
-        let address = "Location unavailable";
-        if (lat && lon) {
-          address = await getAddressFromCoords(lat, lon);
-        }
-
-        // context state
-        if (setCurrentIncident) {
-          const existingHospital = incidentState?.selectedHospital;
-          await setCurrentIncident({
-            emergencyType: data.incidentType,
-            incidentId: data._id,
-            user: data.user,
-            dispatcher: data.dispatcher
-              ? {
-                  _id: data.dispatcher,
-                  firstName: "",
-                  lastName: "",
-                  email: "",
-                  phone: "",
-                  role: "dispatcher",
-                }
-              : undefined,
-            lgu: data.lgu
-              ? {
-                  _id: data.lgu,
-                  firstName: "",
-                  lastName: "",
-                  email: "",
-                  phone: "",
-                  role: "lgu",
-                }
-              : undefined,
-            responderStatus: data.responderStatus
-              ? String(data.responderStatus)
-              : "enroute",
-
-            location: {
-              lat: lat || undefined,
-              lon: lon || undefined,
-              address,
-            },
-            selectedHospital: existingHospital,
-            selectedHospitalId: data.selectedHospital || null,
-          });
-        }
-        // local state
-        setCurrentIncidentState({
-          ...data,
-          location: {
-            address,
-            coordinates: {
-              lat,
-              lon,
-            },
-          },
-        });
-        setVisible(true);
-      } catch (error) {
-        console.error("Error fetching recent incident:", error);
-        setVisible(false);
+      if (sounds?.medical && !sounds.medical.isLoading) {
+        soundPromises.push(sounds.medical.stopSound());
       }
-    };
+      if (sounds?.police && !sounds.police.isLoading) {
+        soundPromises.push(sounds.police.stopSound());
+      }
+      if (sounds?.fire && !sounds.fire.isLoading) {
+        soundPromises.push(sounds.fire.stopSound());
+      }
+      if (sounds?.general && !sounds.general.isLoading) {
+        soundPromises.push(sounds.general.stopSound());
+      }
 
-    const intervalId = setInterval(fetchIncident, 3000);
-    fetchIncident();
+      await Promise.allSettled(soundPromises);
+
+      soundState.current.hasPlayed = false;
+      soundState.current.currentSound = null;
+    } catch (error) {
+      console.error("Error stopping sounds:", error);
+    }
+  }, [sounds]);
+
+  const playIncidentSound = useCallback(
+    async (incidentType: string) => {
+      if (soundState.current.hasPlayed) return;
+
+      try {
+        const sound = getIncidentSound(incidentType);
+        if (!sound || sound.isLoading) return;
+
+        await stopAllSounds();
+        await sound.playSound();
+
+        soundState.current.hasPlayed = true;
+        soundState.current.currentSound = sound;
+      } catch (error) {
+        console.error("Error playing sound:", error);
+      }
+    },
+    [getIncidentSound, stopAllSounds]
+  );
+
+  useEffect(() => {
+    if (incidents.length > 0) {
+      if (!visible) {
+        setVisible(true);
+      }
+      if (currentIncident && !soundState.current.hasPlayed) {
+        playIncidentSound(currentIncident.incidentType);
+      }
+    } else {
+      setVisible(false);
+      stopAllSounds();
+    }
+    return () => {
+      stopAllSounds();
+    };
+  }, [incidents, currentIncident, visible, playIncidentSound, stopAllSounds]);
+
+  const fetchAddress = useCallback(
+    async (lat: number, lon: number) => {
+      try {
+        const address = await getAddressFromCoords(lat, lon);
+        setAddress(address);
+      } catch (error) {
+        console.error("Error fetching address:", error);
+        setAddress("Location unavailable");
+      }
+    },
+    [getAddressFromCoords]
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    if (currentIncident?.incidentDetails?.coordinates) {
+      const {lat, lon} = currentIncident.incidentDetails.coordinates;
+      fetchAddress(lat, lon).then(() => {
+        if (!isMounted) return;
+      });
+    }
 
     return () => {
-      clearInterval(intervalId);
+      isMounted = false;
     };
-  }, [isOnline, setCurrentIncident, isDenying, isAssigning]);
+  }, [currentIncident, fetchAddress]);
+
+  const handleRespond = async () => {
+    try {
+      await stopAllSounds();
+      setIsAssigning(true);
+
+      if (!currentIncident || !authState?.user_id) return;
+
+      const responderLoc = await getUserLocation();
+      if (!responderLoc) throw new Error("Could not get responder location");
+
+      await assignResponder(currentIncident._id, authState.user_id, {
+        lat: responderLoc.latitude,
+        lon: responderLoc.longitude,
+      });
+
+      if (setCurrentIncident) {
+        await setCurrentIncident({
+          ...currentIncident,
+          responderCoordinates: {
+            lat: responderLoc.latitude,
+            lon: responderLoc.longitude,
+          },
+          incidentDetails: {
+            ...currentIncident.incidentDetails,
+            location: address || "",
+          },
+        });
+      }
+      router.push("/(responding)");
+    } catch (error) {
+      console.error("Error responding to incident:", error);
+    } finally {
+      setIsAssigning(false);
+    }
+  };
 
   const handleDeny = async () => {
-    stopAllSounds();
+    await stopAllSounds();
     setIsDenying(true);
     setVisible(false);
     setShowDenyModal(true);
   };
 
-  const handleRespond = async () => {
-    stopAllSounds();
-    if (setCurrentIncident && currentIncident && authState?.user_id) {
-      try {
-        setIsAssigning(true);
-        router.replace("/(responding)");
+  const handleDenyConfirm = async (reason: string) => {
+    if (currentIncident?._id) {
+      await denyIncident(currentIncident._id);
 
-        const [myLocation, address] = await Promise.all([
-          getUserLocation(),
-          getAddressFromCoords(
-            currentIncident.incidentDetails?.coordinates?.lat,
-            currentIncident.incidentDetails?.coordinates?.lon
-          ),
-        ]);
-
-        if (!myLocation) {
-          throw new Error("error getting responders location");
-        }
-
-        // assign the responder
-        await assignResponder(currentIncident._id, authState?.user_id, {
-          lat: myLocation?.latitude,
-          lon: myLocation?.longitude,
-        });
-
-        // set incidentState
-        await setCurrentIncident({
-          emergencyType: currentIncident.incidentType,
-          incidentId: currentIncident._id,
-          user: currentIncident.user,
-          dispatcher: currentIncident.dispatcher,
-          lgu: currentIncident.lgu,
-          responderStatus: currentIncident?.responderStatus || "enroute",
-          location: {
-            lat: currentIncident.incidentDetails?.coordinates?.lat,
-            lon: currentIncident.incidentDetails?.coordinates?.lon,
-            address: address || "Location unavailable",
-          },
-          selectedHospital: currentIncident.selectedHospital,
-          selectedHospitalId: currentIncident.selectedHospitalId,
-        });
-
+      if (currentIncidentIndex < incidents.length - 1) {
+        setCurrentIncidentIndex((prev) => prev + 1);
+        setVisible(true);
+      } else {
         setVisible(false);
-      } catch (error) {
-        console.error("error assigning responder: ", error);
-      } finally {
-        setIsAssigning(false);
       }
     }
+    setShowDenyModal(false);
+    setIsDenying(false);
   };
 
   return (
@@ -263,16 +239,18 @@ export default function NewIncidentModal() {
                     style={styles.incidentLocation}
                     numberOfLines={2}
                     ellipsizeMode="tail">
-                    {currentIncident.location?.address ||
-                      "Location unavailable"}
+                    {address || "Location unavailable"}
                   </Text>
                 </View>
               </View>
               <View style={styles.buttonsContainer}>
                 <TouchableOpacity
                   style={styles.respondButton}
-                  onPress={handleRespond}>
-                  <Text style={styles.buttonText}>Respond</Text>
+                  onPress={handleRespond}
+                  disabled={isAssigning}>
+                  <Text style={styles.buttonText}>
+                    {isAssigning ? "Responding..." : "Respond"}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.denyButton}
@@ -291,18 +269,7 @@ export default function NewIncidentModal() {
           setShowDenyModal(false);
           setIsDenying(false);
         }}
-        onConfirm={(reason) => {
-          if (clearIncident) {
-            clearIncident();
-          }
-          if (currentIncident?._id) {
-            deniedIncidents.current.add(currentIncident._id);
-            denyIncident(currentIncident._id);
-          }
-
-          setShowDenyModal(false);
-          setIsDenying(false);
-        }}
+        onConfirm={handleDenyConfirm}
       />
     </>
   );

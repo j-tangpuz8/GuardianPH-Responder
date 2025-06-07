@@ -39,8 +39,8 @@ export default function MessagesDrawer({
   const {incidentState} = useIncident();
 
   const chatClient = useRef(StreamChat.getInstance(STREAM_KEY!)).current;
-  const hash = incidentState?.incidentId.substring(5, 10);
-  const channelId = `${incidentState?.emergencyType?.toLowerCase()}-${hash}`;
+  const hash = incidentState?._id?.substring(5, 10);
+  const channelId = `${incidentState?.incidentType?.toLowerCase()}-${hash}`;
 
   useEffect(() => {
     const connectToChannel = async () => {

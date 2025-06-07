@@ -34,12 +34,11 @@ export default function VitalSigns() {
 
   const handleSave = async () => {
     try {
-      // Save vital signs data to SecureStore
       await SecureStore.setItemAsync(
         "vitalSignsData",
         JSON.stringify(patientData)
       );
-      router.replace("/(responding)");
+      router.replace("/(responding)/medical/handover-vital-signs");
     } catch (error) {
       console.error("Error saving vital signs:", error);
     }

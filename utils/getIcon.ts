@@ -33,7 +33,7 @@ const getIncidentTypeColor = (type: string) => {
     case "Medical":
       return "#3498db";
     case "Fire":
-      return "#FF6B6B";
+      return "#e74c3c";
     case "Police":
       return "#4a4a4a";
     case "General":

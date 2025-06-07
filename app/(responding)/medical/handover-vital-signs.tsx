@@ -10,13 +10,15 @@ import {
 } from "react-native";
 import React, {useState, useEffect} from "react";
 import {Ionicons} from "@expo/vector-icons";
-import {useGetVolunteerInfo} from "@/hooks/useGetVolunteerInfo";
-import {useGetUserInfo} from "@/hooks/useGetUserInfo";
+import {useFetchResponder} from "@/api/users/useFetchResponder";
 import {useRouter} from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import {useAuth} from "@/context/AuthContext";
 
 export default function VitalSigns() {
-  const {userInfo} = useGetUserInfo();
+  const {authState} = useAuth();
+  const {data: responderData} = useFetchResponder(authState?.user_id || "");
+
   const [patientData, setPatientData] = useState({
     firstName: "",
     lastName: "",
@@ -234,7 +236,7 @@ export default function VitalSigns() {
         </View>
         <View style={styles.ambulanceTextContainer}>
           <Text style={styles.ambulanceText}>
-            {userInfo?.firstName} {userInfo?.lastName}
+            {responderData?.firstName} {responderData?.lastName}
           </Text>
           <Text style={styles.ambulanceSubtext}>
             Bantay Mandaue Command Center

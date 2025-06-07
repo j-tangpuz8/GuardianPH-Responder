@@ -1,28 +1,19 @@
-export interface Coordinates {
-  lat: number | null;
-  lon: number | null;
-}
+import {Facility} from "./facility";
+import {Volunteer} from "./volunteer";
+import {Responder} from "./responder";
+import {Dispatcher} from "./dispatcher";
+import {OpCen} from "./opCen";
 
-export interface IncidentLocation {
-  address?: string;
-  coordinates?: Coordinates;
+export interface Coordinates {
+  lat: number;
+  lon: number;
 }
 
 export interface IncidentDetails {
-  incident?: string | null;
-  incidentDescription?: string | null;
+  incident?: string;
+  incidentDescription?: string;
   coordinates?: Coordinates;
-  [key: string]: any;
-}
-
-export interface Hospital {
-  id: string;
-  name: string;
-  location: {
-    lat: number;
-    lng: number;
-  };
-  vicinity: string;
+  location?: string;
 }
 
 export interface Incident {
@@ -32,25 +23,16 @@ export interface Incident {
   isResolved: boolean;
   isAccepted: boolean;
   isFinished: boolean;
-  acceptedAt: string | null;
-  resolvedAt: string | null;
-  user: string;
-  dispatcher?: string | null;
-  lgu?: string | null;
-  lguStatus: "idle" | "connecting" | "connected";
-  responder?: string | null;
+  acceptedAt: Date;
+  user: Volunteer;
+  dispatcher?: Dispatcher;
+  opCen?: OpCen;
+  opCenStatus: "idle" | "connecting" | "connected";
+  responder?: Responder;
   isAcceptedResponder: boolean;
-  responderStatus?:
-    | "enroute"
-    | "onscene"
-    | "medicalFacility"
-    | "rtb"
-    | "close"
-    | null;
+  responderStatus?: "enroute" | "onscene" | "facility" | "rtb";
+  responderCoordinates?: Coordinates;
   incidentDetails?: IncidentDetails;
-  location?: IncidentLocation;
-  selectedHospitalId?: string | null;
-  createdAt: string;
-  updatedAt: string;
+  selectedFacility?: Facility;
   [key: string]: any;
 }

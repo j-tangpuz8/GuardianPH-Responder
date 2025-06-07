@@ -1,74 +1,18 @@
-import {getHospitalById} from "@/api/hospitals/useHospitals";
 import * as SecureStore from "expo-secure-store";
 import {createContext, useContext, useEffect, useState} from "react";
-
-interface IncidentData {
-  emergencyType: string;
-  isFinished?: boolean;
-  incidentId: string;
-  user: string | null;
-  dispatcher?: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    address?: string;
-    barangay?: string;
-    city?: string;
-    role: string;
-  };
-  lgu?: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    address?: string;
-    barangay?: string;
-    city?: string;
-    role: string;
-  };
-  responderStatus?: string;
-  location?: {
-    lat?: number;
-    lon?: number;
-    address?: string;
-  };
-  selectedHospital?: {
-    id: string;
-    name: string;
-    location: {
-      lat: number;
-      lng: number;
-    };
-    vicinity: string;
-  } | null;
-  selectedHospitalId?: string | null;
-}
+import {Facility} from "@/types/facility";
+import {Incident} from "@/types/incident";
+import {useAuth} from "./AuthContext";
 
 interface IncidentContextProps {
-  incidentState: IncidentData | null;
-  setCurrentIncident: (data: IncidentData) => Promise<void>;
+  incidentState: Incident | null;
+  setCurrentIncident: (data: Incident) => Promise<void>;
   updateIncidentLocation: (locationData: {
     latitude: number;
     longitude: number;
     address: string;
   }) => Promise<void>;
   clearIncident: () => Promise<void>;
-  updateSelectedHospital: (
-    hospital: {
-      id: string;
-      name: string;
-      location: {
-        lat: number;
-        lng: number;
-      };
-      vicinity: string;
-    } | null,
-    hospitalId?: string
-  ) => Promise<void>;
-  fetchSelectedHospital: () => Promise<void>;
 }
 
 const INCIDENT_KEY = "current-incident";
@@ -80,56 +24,33 @@ export const useIncident = () => {
 };
 
 export const IncidentProvider = ({children}: any) => {
-  const [incidentState, setIncidentState] = useState<IncidentData | null>(null);
+  const {authState} = useAuth();
+  const userId = authState?.user_id;
+  const [incidentState, setIncidentState] = useState<Incident | null>(null);
 
   useEffect(() => {
     const loadIncident = async () => {
-      const data = await SecureStore.getItemAsync(INCIDENT_KEY);
+      if (!userId) {
+        setIncidentState(null);
+        return;
+      }
+      const data = await SecureStore.getItemAsync(`${INCIDENT_KEY}-${userId}`);
       if (data) {
         const parsedData = JSON.parse(data);
         setIncidentState(parsedData);
-
-        if (parsedData.selectedHospitalId && !parsedData.selectedHospital) {
-          fetchHospitalData(parsedData.selectedHospitalId);
-        }
       }
     };
     loadIncident();
-  }, []);
+  }, [userId]);
 
-  const fetchHospitalData = async (hospitalId: string) => {
-    if (!hospitalId) return;
-
+  const setCurrentIncident = async (data: Incident) => {
     try {
-      const hospital = await getHospitalById(hospitalId);
-      if (hospital && incidentState) {
-        const updatedIncident = {
-          ...incidentState,
-          selectedHospital: {
-            id: hospital._id,
-            name: hospital.name,
-            location: {
-              lat: hospital.coordinates.lat,
-              lng: hospital.coordinates.lng,
-            },
-            vicinity: hospital.address,
-          },
-        };
-
+      if (userId) {
         await SecureStore.setItemAsync(
-          INCIDENT_KEY,
-          JSON.stringify(updatedIncident)
+          `${INCIDENT_KEY}-${userId}`,
+          JSON.stringify(data)
         );
-        setIncidentState(updatedIncident);
       }
-    } catch (error) {
-      console.error("Error fetching hospital data:", error);
-    }
-  };
-
-  const setCurrentIncident = async (data: IncidentData) => {
-    try {
-      await SecureStore.setItemAsync(INCIDENT_KEY, JSON.stringify(data));
       setIncidentState(data);
     } catch (error) {
       console.error("Error saving incident:", error);
@@ -149,10 +70,12 @@ export const IncidentProvider = ({children}: any) => {
         location: locationData,
       };
 
-      await SecureStore.setItemAsync(
-        INCIDENT_KEY,
-        JSON.stringify(updatedIncident)
-      );
+      if (userId) {
+        await SecureStore.setItemAsync(
+          `${INCIDENT_KEY}-${userId}`,
+          JSON.stringify(updatedIncident)
+        );
+      }
       setIncidentState(updatedIncident);
     } catch (error) {
       console.error("Error updating incident location:", error);
@@ -161,52 +84,17 @@ export const IncidentProvider = ({children}: any) => {
 
   const clearIncident = async () => {
     try {
-      await Promise.all([
-        SecureStore.deleteItemAsync(INCIDENT_KEY),
-        SecureStore.deleteItemAsync("vitalSignsData"),
-        SecureStore.deleteItemAsync("patientDetailsData"),
-      ]);
-
+      if (userId) {
+        await Promise.all([
+          SecureStore.deleteItemAsync(`${INCIDENT_KEY}-${userId}`),
+          SecureStore.deleteItemAsync(`vitalSignsData-${userId}`),
+          SecureStore.deleteItemAsync(`patientDetailsData-${userId}`),
+        ]);
+      }
       setIncidentState(null);
     } catch (error) {
       console.error("Error clearing incident:", error);
     }
-  };
-
-  const updateSelectedHospital = async (
-    hospital: {
-      id: string;
-      name: string;
-      location: {
-        lat: number;
-        lng: number;
-      };
-      vicinity: string;
-    } | null,
-    hospitalId?: string
-  ) => {
-    if (!incidentState) return;
-
-    try {
-      const updatedIncident = {
-        ...incidentState,
-        selectedHospital: hospital,
-        selectedHospitalId: hospitalId || (hospital ? hospital.id : null),
-      };
-
-      await SecureStore.setItemAsync(
-        INCIDENT_KEY,
-        JSON.stringify(updatedIncident)
-      );
-      setIncidentState(updatedIncident);
-    } catch (error) {
-      console.error("Error updating selected hospital:", error);
-    }
-  };
-
-  const fetchSelectedHospital = async () => {
-    if (!incidentState || !incidentState.selectedHospitalId) return;
-    return await fetchHospitalData(incidentState.selectedHospitalId);
   };
 
   const value = {
@@ -214,8 +102,6 @@ export const IncidentProvider = ({children}: any) => {
     setCurrentIncident,
     updateIncidentLocation,
     clearIncident,
-    updateSelectedHospital,
-    fetchSelectedHospital,
   };
 
   return (

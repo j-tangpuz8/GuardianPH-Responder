@@ -89,7 +89,7 @@ export default function PatientDetailsForm() {
         "patientDetailsData",
         JSON.stringify(essentialData)
       );
-      router.replace("/(responding)/vital-signs");
+      router.replace("/(responding)/medical/vital-signs");
     } catch (error) {
       console.error("Error saving patient details:", error);
     }

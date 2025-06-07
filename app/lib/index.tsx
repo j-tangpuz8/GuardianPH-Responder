@@ -6,18 +6,26 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
-import React, {useEffect} from "react";
+import React, {useMemo} from "react";
 import MapView, {PROVIDER_GOOGLE} from "react-native-maps";
 import {useCheckIn} from "@/context/CheckInContext";
 import {useAuth} from "@/context/AuthContext";
 import NewIncidentModal from "@/components/modals/new-incident-modal";
-import {useGetUserInfo} from "@/hooks/useGetUserInfo";
 import {clearDeniedIncidents} from "@/api/incidents/useFetchIncident";
+import {useFetchResponder} from "@/api/users/useFetchResponder";
+import {useAssignmentIcon} from "@/hooks/useAssignmentIcon";
+import {useSound} from "@/utils/PlaySound";
 
 export default function CheckInPage() {
   const {isOnline, setIsOnline} = useCheckIn();
-  const {authState} = useAuth();
-  const {userInfo, loading, error} = useGetUserInfo();
+  const {authState, onLogout} = useAuth();
+  const {data: responderData} = useFetchResponder(authState?.user_id || "");
+  const assignmentIcon = useAssignmentIcon();
+
+  const medicalSound = useSound(require("@/assets/sounds/ambulance.mp3"));
+  const policeSound = useSound(require("@/assets/sounds/police.mp3"));
+  const fireSound = useSound(require("@/assets/sounds/fire.mp3"));
+  const generalSound = useSound(require("@/assets/sounds/general.mp3"));
 
   const handleClick = () => {
     setIsOnline(!isOnline);
@@ -25,7 +33,16 @@ export default function CheckInPage() {
 
   return (
     <View style={styles.container}>
-      {isOnline && <NewIncidentModal />}
+      {isOnline && (
+        <NewIncidentModal
+          sounds={{
+            medical: medicalSound,
+            police: policeSound,
+            fire: fireSound,
+            general: generalSound,
+          }}
+        />
+      )}
       {/* <MapView style={styles.map} provider={PROVIDER_GOOGLE} /> */}
 
       <Modal transparent visible={true} animationType="fade">
@@ -39,11 +56,12 @@ export default function CheckInPage() {
                 gap: 10,
               }}>
               <Image
-                source={require("@/assets/images/AMBU.png")}
-                style={{width: 80, height: 40, marginRight: 10}}
+                source={assignmentIcon}
+                style={{width: 100, height: 50}}
+                resizeMode="contain"
               />
               <Text style={styles.title}>
-                {userInfo?.firstName} {userInfo?.lastName}
+                {responderData?.firstName} {responderData?.lastName}
               </Text>
             </View>
             <Text style={styles.subtitle}>Bantay Mandaue Command Center</Text>
@@ -82,6 +100,11 @@ export default function CheckInPage() {
                   <Text style={styles.clearButtonText}>
                     CLEAR DENIED INCIDENTS LIST
                   </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={() => onLogout?.()}>
+                  <Text style={styles.clearButtonText}>LOGOUT</Text>
                 </TouchableOpacity>
               </>
             )}

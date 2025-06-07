@@ -2,11 +2,8 @@ import {
   View,
   Text,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   TextInput,
   TouchableOpacity,
-  Dimensions,
   StatusBar,
   Alert,
   Image,
@@ -23,7 +20,6 @@ export default function LogIn() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const {onLogin} = useAuth();
-  const router = useRouter();
 
   const logIn = async () => {
     Keyboard.dismiss();
@@ -61,66 +57,75 @@ export default function LogIn() {
     Keyboard.dismiss();
   };
 
-  return (
-    <TouchableWithoutFeedback onPress={dismissKeyboard}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.container}>
-        <StatusBar
-          hidden={false}
-          barStyle="default"
-          backgroundColor="transparent"
-          translucent
-        />
-        <Spinner visible={loading} />
+  const handleSubmitEditing = () => {
+    if (email && password) {
+      logIn();
+    }
+  };
 
-        <View style={styles.topHalf}>
-          <View style={styles.logoContainer}>
-            <Image
-              source={require("@/assets/images/banner-icon.png")}
-              style={styles.logoImage}
+  return (
+    <View style={styles.container}>
+      <StatusBar
+        hidden={false}
+        barStyle="default"
+        backgroundColor="transparent"
+        translucent
+      />
+      <Spinner visible={loading} />
+
+      <TouchableWithoutFeedback onPress={dismissKeyboard}>
+        <View style={styles.innerContainer}>
+          <View style={styles.topHalf}>
+            <View style={styles.logoContainer}>
+              <Image
+                source={require("@/assets/images/banner-icon.png")}
+                style={styles.logoImage}
+              />
+              <View>
+                <Text style={styles.header}>GuardianPH V3</Text>
+                <Text style={styles.subHeader}>RESPONDER</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.formContainer}>
+            <TextInput
+              autoCapitalize="none"
+              placeholder="Username"
+              value={email}
+              onChangeText={setEmail}
+              style={styles.textField}
+              placeholderTextColor="gray"
+              returnKeyType="next"
             />
-            <View>
-              <Text style={styles.header}>GuardianPH V3</Text>
-              <Text style={styles.subHeader}>RESPONDER</Text>
+            <TextInput
+              value={password}
+              placeholder="Password"
+              onChangeText={setPassword}
+              style={styles.textField}
+              placeholderTextColor="gray"
+              secureTextEntry={true}
+              returnKeyType="done"
+              onSubmitEditing={handleSubmitEditing}
+            />
+
+            <TouchableOpacity onPress={logIn} style={styles.buttonLogin}>
+              <Text style={styles.buttonText}>Login</Text>
+            </TouchableOpacity>
+
+            <View style={styles.forgotPasswordContainer}>
+              <TouchableOpacity>
+                <Text style={styles.linkText}>Forgot Password</Text>
+              </TouchableOpacity>
+              {/* <Text style={styles.linkDivider}>|</Text>
+              <TouchableOpacity onPress={() => router.push("/register")}>
+                <Text style={styles.linkText}>Register</Text>
+              </TouchableOpacity> */}
             </View>
           </View>
         </View>
-
-        <View style={styles.formContainer}>
-          <TextInput
-            autoCapitalize="none"
-            placeholder="Username"
-            value={email}
-            onChangeText={setEmail}
-            style={styles.textField}
-            placeholderTextColor="gray"
-          />
-          <TextInput
-            value={password}
-            placeholder="Password"
-            onChangeText={setPassword}
-            style={styles.textField}
-            placeholderTextColor="gray"
-            secureTextEntry={true}
-          />
-
-          <TouchableOpacity onPress={logIn} style={styles.buttonLogin}>
-            <Text style={styles.buttonText}>Login</Text>
-          </TouchableOpacity>
-
-          <View style={styles.forgotPasswordContainer}>
-            <TouchableOpacity>
-              <Text style={styles.linkText}>Forgot Password</Text>
-            </TouchableOpacity>
-            {/* <Text style={styles.linkDivider}>|</Text>
-          <TouchableOpacity onPress={() => router.push("/register")}>
-            <Text style={styles.linkText}>Register</Text>
-          </TouchableOpacity> */}
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+      </TouchableWithoutFeedback>
+    </View>
   );
 }
 
@@ -128,6 +133,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  innerContainer: {
+    flex: 1,
   },
   topHalf: {
     flex: 1,

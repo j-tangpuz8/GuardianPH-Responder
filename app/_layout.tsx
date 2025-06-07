@@ -12,7 +12,9 @@ import {
 import {OverlayProvider} from "stream-chat-expo";
 import {CheckInProvider} from "@/context/CheckInContext";
 import {IncidentProvider, useIncident} from "@/context/IncidentContext";
+import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 
+const queryClient = new QueryClient();
 const STREAM_KEY = process.env.EXPO_PUBLIC_STREAM_ACCESS_KEY;
 
 const InitialLayout = () => {
@@ -66,6 +68,16 @@ const InitialLayout = () => {
     }
   }, [authState]);
 
+  useEffect(() => {
+    if (
+      authState?.authenticated &&
+      incidentState &&
+      Object.keys(incidentState).length > 0
+    ) {
+      router.replace("/(responding)");
+    }
+  }, [authState, incidentState]);
+
   return (
     <>
       {!client && <Slot />}
@@ -82,15 +94,17 @@ const InitialLayout = () => {
 
 const RootLayout = () => {
   return (
-    <AuthProvider>
-      <IncidentProvider>
-        <CheckInProvider>
-          <GestureHandlerRootView style={{flex: 1}}>
-            <InitialLayout />
-          </GestureHandlerRootView>
-        </CheckInProvider>
-      </IncidentProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <IncidentProvider>
+          <CheckInProvider>
+            <GestureHandlerRootView style={{flex: 1}}>
+              <InitialLayout />
+            </GestureHandlerRootView>
+          </CheckInProvider>
+        </IncidentProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 };
 

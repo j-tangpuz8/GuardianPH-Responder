@@ -11,12 +11,8 @@ export default function RespondingHeader() {
 
   useEffect(() => {
     if (incidentState?.responderStatus) {
-      // console.log("Header: Setting status to", incidentState.responderStatus);
       setCurrentStatus(incidentState.responderStatus);
     } else {
-      // console.log(
-      //   "No responderStatus found in incidentState, defaulting to enroute"
-      // );
       setCurrentStatus("enroute");
     }
   }, [incidentState]);
@@ -25,37 +21,51 @@ export default function RespondingHeader() {
     const statusMap: {[key: string]: string} = {
       enroute: "ENROUTE",
       onscene: "ON SCENE",
-      medicalFacility: "MEDICAL FACILITY",
+      facility: "FACILITY",
       rtb: "RETURN TO BASE",
-      close: "CLOSE INCIDENT",
     };
     return statusMap[status || "enroute"] || "ENROUTE";
   };
 
   const handlePatientDetailsPress = () => {
-    router.push("/(responding)/patient-details");
+    router.push("/(responding)/medical/patient-details");
+  };
+
+  const handleFireDetailsPress = () => {
+    router.push("/(responding)/fire/fire-details");
   };
 
   const handleVitalSignsPress = () => {
-    router.push("/(responding)/vital-signs");
+    router.push("/(responding)/medical/vital-signs");
   };
 
   const handleVitalSignsPress2 = () => {
-    router.push("/(responding)/handover-vital-signs");
+    router.push("/(responding)/medical/handover-vital-signs");
   };
 
   const renderBottomContainer = () => {
     const status = incidentState?.responderStatus || "enroute";
+    const incidentType = incidentState?.incidentType || "";
 
     if (status === "onscene") {
-      return (
-        <TouchableOpacity
-          style={styles.actionContainer}
-          onPress={handlePatientDetailsPress}>
-          <Text style={styles.actionText}>PATIENT DETAILS</Text>
-        </TouchableOpacity>
-      );
-    } else if (status === "medicalFacility") {
+      if (incidentType.includes("Fire")) {
+        return (
+          <TouchableOpacity
+            style={styles.actionContainer}
+            onPress={handleFireDetailsPress}>
+            <Text style={styles.actionText}>FIRE DETAILS</Text>
+          </TouchableOpacity>
+        );
+      } else if (incidentType.includes("Medical")) {
+        return (
+          <TouchableOpacity
+            style={styles.actionContainer}
+            onPress={handlePatientDetailsPress}>
+            <Text style={styles.actionText}>PATIENT DETAILS</Text>
+          </TouchableOpacity>
+        );
+      }
+    } else if (status === "facility") {
       return (
         <TouchableOpacity
           style={styles.actionContainer2}
@@ -63,19 +73,27 @@ export default function RespondingHeader() {
           <Text style={styles.actionText}>PRE-HOSPITAL</Text>
         </TouchableOpacity>
       );
-    } else {
-      return null;
     }
+
+    return null;
   };
 
   return (
     <View style={styles.main}>
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: incidentState?.incidentType?.includes("Fire")
+              ? "#e74c3c"
+              : incidentState?.incidentType?.includes("Medical")
+              ? "#3498db"
+              : "#e74c3c",
+          },
+        ]}>
         <View style={styles.mainContent}>
           <Image
-            source={all.GetEmergencyIcon(
-              incidentState?.emergencyType || "Fire"
-            )}
+            source={all.GetEmergencyIcon(incidentState?.incidentType!)}
             style={styles.icon}
           />
           <View style={styles.titleContainer}>
@@ -83,7 +101,8 @@ export default function RespondingHeader() {
               {getStatusText(incidentState?.responderStatus)}
             </Text>
             <Text style={styles.address}>
-              {incidentState?.location?.address || "Location unavailable"}
+              {incidentState?.incidentDetails?.location ||
+                "Location unavailable"}
             </Text>
           </View>
         </View>
@@ -102,7 +121,6 @@ const styles = StyleSheet.create({
   container: {
     padding: 8,
     paddingBottom: 5,
-    backgroundColor: "#3498db",
   },
   mainContent: {
     flexDirection: "row",

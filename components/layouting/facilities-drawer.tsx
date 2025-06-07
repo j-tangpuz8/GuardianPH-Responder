@@ -6,34 +6,68 @@ import {
   TouchableWithoutFeedback,
   Animated,
   Dimensions,
-  Alert,
-  ActivityIndicator,
   ScrollView,
+  ActivityIndicator,
+  Image,
 } from "react-native";
-import React, {useEffect, useRef} from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
 import {useIncident} from "@/context/IncidentContext";
-import {useNearbyHospitals, Hospital} from "@/hooks/useGetHospitals";
-import {addHospitalAndUpdateIncident} from "@/api/hospitals/useHospitals";
+import {useFetchFacilitiesByAssignment} from "@/api/facilities/useFetchFacilities";
+import {useFetchResponder} from "@/api/users/useFetchResponder";
+import {useAuth} from "@/context/AuthContext";
+import {STYLING_CONFIG} from "@/constants/styling-config";
+import useLocation from "@/hooks/useLocation";
 
-interface MedicalFacilityDrawerProps {
+const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+interface FacilityDrawerProps {
   visible: boolean;
   onClose: () => void;
   onSelectFacility: (hospitalId?: string, hospitalName?: string) => void;
+  facilityType: keyof typeof STYLING_CONFIG;
 }
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
-export default function MedicalFacilityDrawer({
+export default function FacilityDrawer({
   visible,
   onClose,
   onSelectFacility,
-}: MedicalFacilityDrawerProps) {
+  facilityType,
+}: FacilityDrawerProps & {facilityType: keyof typeof STYLING_CONFIG}) {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const {incidentState, updateSelectedHospital} = useIncident();
-  const {hospitals, loading, error, refreshHospitals} = useNearbyHospitals({
-    radius: 10000,
-    limit: 3,
-  });
+  const {incidentState} = useIncident();
+  const {authState} = useAuth();
+  const {data: responderData} = useFetchResponder(authState?.user_id || "");
+  const {getAddressFromCoords} = useLocation();
+  const [facilityDistances, setFacilityDistances] = useState<{
+    [key: string]: {distance: number; duration: number};
+  }>({});
+  const [facilityAddresses, setFacilityAddresses] = useState<{
+    [key: string]: string;
+  }>({});
+
+  const config = STYLING_CONFIG[facilityType];
+
+  const {
+    data: facilities,
+    isLoading: loading,
+    isError: error,
+    refetch: refetchFacilities,
+  } = useFetchFacilitiesByAssignment(responderData?.assignment || "");
+
+  const fetchAddress = useCallback(
+    async (lat: number, lon: number) => {
+      try {
+        const address = await getAddressFromCoords(lat, lon);
+        return address;
+      } catch (error) {
+        console.error("Error fetching address:", error);
+        return "Location unavailable";
+      }
+    },
+    [getAddressFromCoords]
+  );
 
   useEffect(() => {
     if (visible) {
@@ -41,7 +75,7 @@ export default function MedicalFacilityDrawer({
         toValue: 0,
         useNativeDriver: true,
       }).start();
-      refreshHospitals();
+      refetchFacilities();
     } else {
       Animated.timing(slideAnim, {
         toValue: SCREEN_HEIGHT,
@@ -51,43 +85,68 @@ export default function MedicalFacilityDrawer({
     }
   }, [visible]);
 
-  if (!visible) return null;
+  useEffect(() => {
+    const calculateDistances = async () => {
+      if (
+        !facilities ||
+        !incidentState?.incidentDetails?.coordinates ||
+        !incidentState?.incidentDetails?.coordinates
+      )
+        return;
 
-  // set the selected hospital in the incident staet
-  const handleSelectHospital = async (hospital: Hospital) => {
-    if (!incidentState?.incidentId || !updateSelectedHospital) {
-      Alert.alert("Error", "Cannot select hospital: No active incident");
-      return;
-    }
-    try {
-      const result = await addHospitalAndUpdateIncident(
-        hospital,
-        incidentState.incidentId
-      );
+      const distances: {[key: string]: {distance: number; duration: number}} =
+        {};
 
-      if (result.success) {
-        updateSelectedHospital(
-          {
-            id: hospital.id,
-            name: hospital.name,
-            location: hospital.location,
-            vicinity: hospital.vicinity,
-          },
-          result.hospitalId
-        );
-        onSelectFacility(hospital.id, hospital.name);
-      } else {
-        Alert.alert(
-          "Warning",
-          "Hospital selected but could not be saved to database. Navigation will still work."
-        );
+      for (const facility of facilities) {
+        try {
+          const response = await fetch(
+            `https://maps.googleapis.com/maps/api/directions/json?origin=${incidentState.incidentDetails.coordinates.lat},${incidentState.incidentDetails.coordinates.lon}&destination=${facility.location.coordinates.lat},${facility.location.coordinates.lng}&key=${GOOGLE_MAPS_API_KEY}`
+          );
+          const data = await response.json();
+
+          if (data.status === "OK" && data.routes.length > 0) {
+            const route = data.routes[0].legs[0];
+            distances[facility._id] = {
+              distance: route.distance.value,
+              duration: route.duration.value,
+            };
+          }
+        } catch (error) {
+          console.error("Error calculating distance:", error);
+        }
       }
-    } catch (error) {
-      console.error("Error selecting hospital:", error);
-      Alert.alert("Error", "Failed to select hospital. Please try again.");
+
+      setFacilityDistances(distances);
+    };
+
+    calculateDistances();
+  }, [facilities, incidentState?.incidentDetails?.coordinates]);
+
+  useEffect(() => {
+    const fetchAllAddresses = async () => {
+      const addressPromises = facilities?.map(async (facility) => {
+        const address = await fetchAddress(
+          facility.location?.coordinates?.lat,
+          facility.location?.coordinates?.lng
+        );
+        return {id: facility._id, address};
+      });
+
+      const addresses = await Promise.all(addressPromises || []);
+      const addressMap = addresses.reduce((acc, {id, address}) => {
+        acc[id] = address;
+        return acc;
+      }, {} as {[key: string]: string});
+
+      setFacilityAddresses(addressMap);
+    };
+
+    if (facilities && facilities.length > 0) {
+      fetchAllAddresses();
     }
-    onClose();
-  };
+  }, [facilities, fetchAddress]);
+
+  if (!visible) return null;
 
   const formatDistance = (meters: number) => {
     if (meters < 1000) {
@@ -97,9 +156,8 @@ export default function MedicalFacilityDrawer({
     }
   };
 
-  const calculateETA = (meters: number) => {
-    const minutes = Math.ceil(meters / 500);
-
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.ceil(seconds / 60);
     if (minutes < 1) {
       return "< 1min";
     } else if (minutes < 60) {
@@ -122,8 +180,9 @@ export default function MedicalFacilityDrawer({
                 transform: [{translateY: slideAnim}],
               },
             ]}>
-            <View style={styles.header}>
-              <Text style={styles.title}>MEDICAL FACILITY</Text>
+            <View
+              style={[styles.header, {backgroundColor: config.headerColor}]}>
+              <Text style={styles.title}>{config.label}</Text>
               <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                 <Text style={styles.closeButtonText}>✕</Text>
               </TouchableOpacity>
@@ -139,68 +198,73 @@ export default function MedicalFacilityDrawer({
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color="#3498db" />
                   <Text style={styles.loadingText}>
-                    Finding nearby hospitals...
+                    Finding nearby facilities...
                   </Text>
                 </View>
               )}
 
-              {/* Rest of the content */}
               {/* Error State */}
               {error && (
                 <View style={styles.errorContainer}>
                   <Text style={styles.errorText}>Error: {error}</Text>
                   <TouchableOpacity
                     style={styles.retryButton}
-                    onPress={refreshHospitals}>
+                    onPress={() => refetchFacilities()}>
                     <Text style={styles.retryButtonText}>Retry</Text>
                   </TouchableOpacity>
                 </View>
               )}
 
               {/* Empty State */}
-              {!loading && !error && hospitals.length === 0 && (
+              {!loading && !error && facilities?.length === 0 && (
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyText}>
-                    No hospitals found nearby
+                    No facilities found nearby
                   </Text>
-                  <TouchableOpacity
-                    style={styles.retryButton}
-                    onPress={refreshHospitals}>
+                  <TouchableOpacity style={styles.retryButton}>
                     <Text style={styles.retryButtonText}>Refresh</Text>
                   </TouchableOpacity>
                 </View>
               )}
 
-              {/* Hospital List */}
+              {/* facilities List */}
               {!loading &&
                 !error &&
-                hospitals.map((hospital) => (
-                  <View key={hospital.id} style={styles.hospitalItem}>
+                facilities?.map((facility) => (
+                  <View key={facility._id} style={styles.hospitalItem}>
                     <View style={styles.hospitalInfo}>
+                      <Image source={config.icon} style={styles.icon} />
                       <View style={styles.hospitalDetails}>
-                        <Text style={styles.hospitalName}>{hospital.name}</Text>
+                        <Text style={styles.hospitalName}>{facility.name}</Text>
                         <Text style={styles.hospitalAddress} numberOfLines={1}>
-                          {hospital.vicinity}
+                          {facilityAddresses[facility._id] ||
+                            "Loading address..."}
                         </Text>
                         <View style={styles.hospitalMetrics}>
                           <Text style={styles.etaText}>
                             ETA{" "}
                             <Text style={styles.metricValue}>
-                              {calculateETA(hospital.distance)}
+                              {facilityDistances[facility._id]
+                                ? formatDuration(
+                                    facilityDistances[facility._id].duration
+                                  )
+                                : "Calculating..."}
                             </Text>
                           </Text>
                           <Text style={styles.disText}>
                             DIS{" "}
                             <Text style={styles.metricValue}>
-                              {formatDistance(hospital.distance)}
+                              {facilityDistances[facility._id]
+                                ? formatDistance(
+                                    facilityDistances[facility._id].distance
+                                  )
+                                : "Calculating..."}
                             </Text>
                           </Text>
                         </View>
                       </View>
                     </View>
-                    <TouchableOpacity
-                      style={styles.goButton}
-                      onPress={() => handleSelectHospital(hospital)}>
+                    <TouchableOpacity style={styles.goButton}>
                       <Text style={styles.goButtonText}>GO</Text>
                     </TouchableOpacity>
                   </View>
@@ -359,5 +423,10 @@ const styles = StyleSheet.create({
   scrollContentContainer: {
     flexGrow: 1,
     paddingBottom: 20,
+  },
+  icon: {
+    width: 30,
+    height: 30,
+    marginRight: 10,
   },
 });

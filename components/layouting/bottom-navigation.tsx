@@ -13,7 +13,7 @@ export default function BottomNavigation() {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showMessagesDrawer, setShowMessagesDrawer] = useState(false);
   const {incidentState} = useIncident();
-  const {authState} = useAuth();
+  const {authState, onLogout} = useAuth();
   const client = useStreamVideoClient();
 
   const initiateAudioCall = async () => {
@@ -34,18 +34,16 @@ export default function BottomNavigation() {
           ],
           settings_override: {
             audio: {mic_default_on: true, default_device: "speaker"},
-            // Keep video disabled, remove target_resolution
             video: {camera_default_on: false, enabled: false},
           },
         },
         ring: true,
       });
-      // Don't join here, let the audio-call screen handle joining
       // await outgoingCall.join();
       router.push({
         pathname: "/(responding)/audio-call",
         params: {callId: callId},
-      }); // Pass callId
+      });
     } catch (err) {
       console.error("Failed to initiate call:", err);
       alert("Failed to start call. Please try again.");
@@ -78,6 +76,10 @@ export default function BottomNavigation() {
           style={styles.tab}
           onPress={() => setShowStatusModal(true)}>
           <FontAwesome5 name="bars" size={24} color="white" />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.tab} onPress={() => onLogout?.()}>
+          <FontAwesome5 name="sign-out-alt" size={24} color="white" />
         </TouchableOpacity>
       </View>
 

@@ -25,7 +25,8 @@ const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 
 const index = () => {
   const {lat, lon, errorMsg, getUserLocation} = useLocation();
-  const {incidentState, fetchSelectedHospital} = useIncident();
+  const {incidentState, clearIncident} = useIncident();
+
   const [mapRegion, setMapRegion] = useState<Region | null>(null);
   const [distance, setDistance] = useState<string | null>(null);
   const [duration, setDuration] = useState<string | null>(null);
@@ -35,66 +36,33 @@ const index = () => {
 
   // responder
   const responderCoords = useMemo(() => {
-    return lat && lon
+    return incidentState?.responderCoordinates?.lat &&
+      incidentState?.responderCoordinates?.lon
       ? {
-          latitude: lat,
-          longitude: lon,
+          latitude: Number(incidentState?.responderCoordinates?.lat),
+          longitude: Number(incidentState?.responderCoordinates?.lon),
         }
       : null;
-  }, [lat, lon]);
+  }, [
+    incidentState?.responderCoordinates?.lat,
+    incidentState?.responderCoordinates?.lon,
+  ]);
 
+  // incident / destination
   const incidentCoords = useMemo(() => {
-    return incidentState?.location?.lat && incidentState?.location?.lon
+    return incidentState?.incidentDetails?.coordinates?.lat &&
+      incidentState?.incidentDetails?.coordinates?.lon
       ? {
-          latitude: Number(incidentState.location.lat),
-          longitude: Number(incidentState.location.lon),
+          latitude: Number(incidentState.incidentDetails.coordinates.lat),
+          longitude: Number(incidentState.incidentDetails.coordinates.lon),
         }
       : null;
-  }, [incidentState?.location?.lat, incidentState?.location?.lon]);
+  }, [
+    incidentState?.incidentDetails?.coordinates?.lat,
+    incidentState?.incidentDetails?.coordinates?.lon,
+  ]);
 
-  // temporary dummy incident coordinates for testing...
-  // const incidentCoords = useMemo(
-  //   () => ({
-  //     latitude: 10.373,
-  //     longitude: 123.9545,
-  //   }),
-  //   []
-  // );
-
-  // fetch selected hospital
-  useEffect(() => {
-    if (
-      incidentState?.selectedHospitalId &&
-      !incidentState?.selectedHospital &&
-      fetchSelectedHospital
-    ) {
-      fetchSelectedHospital();
-    }
-  }, [incidentState?.selectedHospitalId]);
-
-  // hospital coordinates
-  const hospitalCoords = useMemo(() => {
-    if (incidentState?.selectedHospital?.location) {
-      return {
-        latitude: incidentState.selectedHospital.location.lat,
-        longitude: incidentState.selectedHospital.location.lng,
-      };
-    }
-    return null;
-  }, [incidentState?.selectedHospital]);
-
-  // Determine which destination to use
-  const destinationCoords = useMemo(() => {
-    if (
-      hospitalCoords &&
-      (incidentState?.responderStatus === "medicalFacility" ||
-        (incidentState?.responderStatus !== "enroute" &&
-          incidentState?.responderStatus !== "onscene"))
-    ) {
-      return hospitalCoords;
-    }
-    return incidentCoords;
-  }, [hospitalCoords, incidentCoords, incidentState?.responderStatus]);
+  console.log("incidentState", incidentState);
 
   useFocusEffect(
     useCallback(() => {
@@ -114,10 +82,8 @@ const index = () => {
             incidentState?.location?.lat &&
             incidentState?.location?.lon
           ) {
-            const destLat =
-              hospitalCoords?.latitude || incidentCoords?.latitude;
-            const destLon =
-              hospitalCoords?.longitude || incidentCoords?.longitude;
+            const destLat = incidentCoords?.latitude;
+            const destLon = incidentCoords?.longitude;
 
             const midLat = (locationData.latitude + destLat!) / 2;
             const midLon = (locationData.longitude + destLon!) / 2;
@@ -155,37 +121,33 @@ const index = () => {
       return () => {
         isMounted = false;
       };
-    }, [
-      incidentState?.location?.lat,
-      incidentState?.location?.lon,
-      hospitalCoords,
-    ])
+    }, [incidentState?.location?.lat, incidentState?.location?.lon])
   );
 
   // Update map when hospital selection changes
-  useEffect(() => {
-    if (mapRef.current && responderCoords && hospitalCoords) {
-      mapInitialized.current = false;
+  // useEffect(() => {
+  //   if (mapRef.current && responderCoords && hospitalCoords) {
+  //     mapInitialized.current = false;
 
-      const midLat = (responderCoords.latitude + hospitalCoords.latitude) / 2;
-      const midLon = (responderCoords.longitude + hospitalCoords.longitude) / 2;
+  //     const midLat = (responderCoords.latitude + hospitalCoords.latitude) / 2;
+  //     const midLon = (responderCoords.longitude + hospitalCoords.longitude) / 2;
 
-      const latDelta =
-        Math.abs(responderCoords.latitude - hospitalCoords.latitude) * 1.5;
-      const lonDelta =
-        Math.abs(responderCoords.longitude - hospitalCoords.longitude) * 1.5;
+  //     const latDelta =
+  //       Math.abs(responderCoords.latitude - hospitalCoords.latitude) * 1.5;
+  //     const lonDelta =
+  //       Math.abs(responderCoords.longitude - hospitalCoords.longitude) * 1.5;
 
-      mapRef.current.animateToRegion(
-        {
-          latitude: midLat,
-          longitude: midLon,
-          latitudeDelta: Math.max(latDelta, LATITUDE_DELTA),
-          longitudeDelta: Math.max(lonDelta, LONGITUDE_DELTA),
-        },
-        1000
-      );
-    }
-  }, [hospitalCoords, responderCoords]);
+  //     mapRef.current.animateToRegion(
+  //       {
+  //         latitude: midLat,
+  //         longitude: midLon,
+  //         latitudeDelta: Math.max(latDelta, LATITUDE_DELTA),
+  //         longitudeDelta: Math.max(lonDelta, LONGITUDE_DELTA),
+  //       },
+  //       1000
+  //     );
+  //   }
+  // }, [hospitalCoords, responderCoords]);
 
   // map loading state ui
   if (isLoading) {
@@ -235,14 +197,14 @@ const index = () => {
           anchor={{x: 0.5, y: 0.5}}>
           <View style={styles.markerWrapper}>
             <Image
-              source={all.GetIcon(incidentState?.emergencyType!)}
+              source={all.GetIcon(incidentState?.incidentType!)}
               style={styles.markerIcon}
             />
           </View>
         </Marker>
 
         {/* incident loc marker */}
-        {!hospitalCoords && (
+        {incidentCoords && (
           <Marker
             coordinate={incidentCoords}
             title="Incident Location"
@@ -250,7 +212,7 @@ const index = () => {
             anchor={{x: 0.5, y: 0.5}}>
             <View style={styles.markerWrapper}>
               <Image
-                source={all.GetEmergencyIcon(incidentState?.emergencyType!)}
+                source={all.GetEmergencyIcon(incidentState?.incidentType!)}
                 style={styles.markerIcon}
               />
             </View>
@@ -258,7 +220,7 @@ const index = () => {
         )}
 
         {/* hospital marker */}
-        {hospitalCoords && (
+        {/* {hospitalCoords && (
           <Marker
             coordinate={hospitalCoords}
             title={incidentState?.selectedHospital?.name || "Hospital"}
@@ -271,11 +233,11 @@ const index = () => {
               />
             </View>
           </Marker>
-        )}
+        )} */}
 
         <MapViewDirections
           origin={responderCoords}
-          destination={destinationCoords!}
+          destination={incidentCoords}
           apikey={GOOGLE_MAPS_API_KEY!}
           strokeWidth={4}
           strokeColor="#1a73e8"
@@ -296,7 +258,7 @@ const index = () => {
         {distance &&
           duration &&
           (incidentState?.responderStatus == "enroute" ||
-            incidentState?.responderStatus == "medicalFacility") && (
+            incidentState?.responderStatus == "facility") && (
             <View style={styles.miniInfoContainer}>
               <Text style={styles.miniInfoText}>
                 DIS: {distance} • ETA: {duration}
