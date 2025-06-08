@@ -12,9 +12,9 @@ import {
   useCall,
   StreamCall,
   useStreamVideoClient,
-  Call, // Import Call type
+  Call,
 } from "@stream-io/video-react-native-sdk";
-import {useRouter, useLocalSearchParams} from "expo-router"; // Import useLocalSearchParams
+import {useRouter, useLocalSearchParams} from "expo-router";
 import {FontAwesome} from "@expo/vector-icons";
 
 export default function AudioCall() {
@@ -22,54 +22,46 @@ export default function AudioCall() {
   const {authState} = useAuth();
   const router = useRouter();
   const client = useStreamVideoClient();
-  const {callId} = useLocalSearchParams<{callId: string}>(); // Get callId from params
+  const {callId} = useLocalSearchParams<{callId: string}>();
   const [isInitializing, setIsInitializing] = useState(true);
-  const [isConnecting, setIsConnecting] = useState(false); // State for connecting phase
-  const [callObject, setCallObject] = useState<Call | null>(null); // Use Call type
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [callObject, setCallObject] = useState<Call | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function setupCall() {
       if (!client || !callId || !incidentState?.lgu) {
-        // Check for callId
         setError("Missing required information");
         setIsInitializing(false);
         return;
       }
 
-      // Retrieve the existing call object
       const call = client.call("default", callId);
-      setCallObject(call); // Set the call object immediately for StreamCall provider
+      setCallObject(call);
 
       try {
-        setIsConnecting(true); // Start connecting phase
+        setIsConnecting(true);
         console.log("Attempting to join call:", callId);
 
-        // Listen for acceptance before joining (optional but good practice)
         call.on("call.accepted", (event) => {
           console.log("Call accepted event received for user:", event.user.id);
-          // You might want state to track if the *other* user accepted
         });
 
         call.on("call.rejected", (event) => {
           console.log("Call rejected event received");
           setError("Call was rejected.");
           setIsConnecting(false);
-          // Optionally navigate back after a delay
           setTimeout(() => router.back(), 2000);
         });
 
-        // Join the call
         await call.join();
         console.log("Successfully joined call:", callId);
-        setIsConnecting(false); // End connecting phase
-        setIsInitializing(false); // Mark initialization complete
+        setIsConnecting(false);
+        setIsInitializing(false);
       } catch (err: any) {
         console.error("Error joining call:", err);
-        // Handle specific errors if possible
         if (err.message?.includes("already joined")) {
           console.warn("Attempted to join a call already joined.");
-          // Potentially recover or just proceed
           setIsConnecting(false);
           setIsInitializing(false);
         } else {
@@ -82,7 +74,6 @@ export default function AudioCall() {
 
     setupCall();
 
-    // Cleanup function to leave the call when the component unmounts
     return () => {
       if (callObject) {
         console.log("Leaving call on component unmount:", callObject.id);
@@ -91,10 +82,9 @@ export default function AudioCall() {
         });
       }
     };
-    // Ensure dependencies are correct, especially callId
-  }, [client, callId, incidentState?.lgu]); // Add callId dependency
+  }, [client, callId, incidentState?.lgu]);
 
-  // Loading UI (Covers both initializing and connecting)
+  // loading ui
   if (isInitializing || isConnecting) {
     return (
       <View style={styles.container}>
@@ -106,7 +96,7 @@ export default function AudioCall() {
     );
   }
 
-  // Error UI
+  // error UI
   if (error || !callObject) {
     return (
       <View style={styles.container}>
@@ -120,8 +110,6 @@ export default function AudioCall() {
     );
   }
 
-  // Call UI (No ringing state needed here as we join directly)
-  // The StreamCall component handles the connected state internally
   return (
     <StreamCall call={callObject}>
       <AudioOnlyContent />
@@ -129,7 +117,6 @@ export default function AudioCall() {
   );
 }
 
-// Component that uses call state hooks (must be inside StreamCall)
 function AudioOnlyContent() {
   const call = useCall();
   const router = useRouter();

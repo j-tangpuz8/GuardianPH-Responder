@@ -11,13 +11,19 @@
     "splash": {
       "image": "./assets/images/adaptive-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1B4965"
     },
     "ios": {
       "supportsTablet": true,
       "bitcode": false
     },
     "android": {
+      "navigationBarBackgroundColor": "#1B4965",
+      "navigationBarStyle": "light-content",
+      "navigationBar": {
+        "backgroundColor": "#1B4965",
+        "barStyle": "light-content"
+      },
       "config": {
         "googleMaps": {
           "apiKey": "process.env.GOOGLE_MAPS_API_KEY"
@@ -25,7 +31,7 @@
       },
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#1B4965"
       },
       "permissions": [
         "android.permission.BLUETOOTH",

@@ -1,4 +1,8 @@
 package com.jolotangpuz.GuardianResponder
+import com.oney.WebRTCModule.WebRTCModuleOptions
+import androidx.lifecycle.Lifecycle
+import android.content.res.Configuration
+import com.streamvideo.reactnative.StreamVideoReactNative
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
@@ -62,4 +66,14 @@ class MainActivity : ReactActivity() {
       // because it's doing more than [Activity.moveTaskToBack] in fact.
       super.invokeDefaultOnBackPressed()
   }
+
+override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode)
+        if (lifecycle.currentState === Lifecycle.State.CREATED) {
+            // when user clicks on Close button of PIP
+            finishAndRemoveTask()
+        } else {
+            StreamVideoReactNative.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        }
+      }
 }
