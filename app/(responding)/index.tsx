@@ -62,7 +62,7 @@ const index = () => {
     incidentState?.incidentDetails?.coordinates?.lon,
   ]);
 
-  console.log("incidentState", incidentState);
+  // console.log("incidentState", incidentState);
 
   useFocusEffect(
     useCallback(() => {

@@ -99,7 +99,7 @@ export default function BottomNavigation() {
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    backgroundColor: "#2c3e50",
+    backgroundColor: "#1B4965",
     padding: 6,
     justifyContent: "space-around",
   },

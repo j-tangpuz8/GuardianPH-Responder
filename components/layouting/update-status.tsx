@@ -16,6 +16,7 @@ import {
 } from "@/api/incidents/useUpdateIncident";
 import {useIncident} from "@/context/IncidentContext";
 import {STYLING_CONFIG} from "@/constants/styling-config";
+import FireAlarmDrawer from "./fire-alarm-drawer";
 
 interface UpdateStatusModalProps {
   visible: boolean;
@@ -34,6 +35,7 @@ export default function UpdateStatusModal({
     useState<boolean>(false);
   const [showFacilities, setShowFacilities] = useState<boolean>(false);
   const {incidentState, setCurrentIncident} = useIncident();
+  const [showFireAlarms, setShowFireAlarms] = useState<boolean>(false);
 
   useEffect(() => {
     if (incidentState?.responderStatus) {
@@ -139,7 +141,9 @@ export default function UpdateStatusModal({
 
               {/*//// for fire incidents only /////*/}
               {incidentState?.incidentType == "Fire" && (
-                <TouchableOpacity style={styles.statusButton}>
+                <TouchableOpacity
+                  onPress={() => setShowFireAlarms(true)}
+                  style={styles.statusButton}>
                   <Text style={styles.statusText}>ALARM LEVEL</Text>
 
                   <Text style={{color: "white"}}>(FIRST ALARM)</Text>
@@ -210,6 +214,13 @@ export default function UpdateStatusModal({
           }
         />
       )}
+      {showFireAlarms && (
+        <FireAlarmDrawer
+          visible={showFireAlarms}
+          onClose={() => setShowFireAlarms(false)}
+          onSelectFireAlarm={() => console.log("fire alarm selected")}
+        />
+      )}
     </>
   );
 }
@@ -225,7 +236,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   drawer: {
-    backgroundColor: "#34495e",
+    backgroundColor: "#1B4965",
     padding: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
