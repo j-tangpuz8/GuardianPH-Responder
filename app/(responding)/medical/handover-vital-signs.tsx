@@ -14,6 +14,7 @@ import {useFetchResponder} from "@/api/users/useFetchResponder";
 import {useRouter} from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import {useAuth} from "@/context/AuthContext";
+import {SignatureButton} from "@/components/buttons/signatureButton";
 
 export default function VitalSigns() {
   const {authState} = useAuth();
@@ -419,38 +420,38 @@ export default function VitalSigns() {
           onChangeText={(text) => handleChange("emsTeamLeader", text)}
         />
 
-        <TextInput
-          style={styles.handoverInput}
-          placeholder="Signature"
-          value={patientData.emsSignature}
-          onChangeText={(text) => handleChange("emsSignature", text)}
+        <SignatureButton
+          onSignatureSave={(signature) =>
+            handleChange("emsSignature", signature)
+          }
+          title="EMS Signature"
+          buttonText="Input EMS Signature"
         />
 
         <TextInput
-          style={styles.handoverInput}
+          style={[styles.handoverInput, {marginTop: 10}]}
           placeholder="Date & Time"
           value={patientData.emsDateTime}
           onChangeText={(text) => handleChange("emsDateTime", text)}
         />
 
         <TextInput
-          style={styles.handoverInput}
+          style={[styles.handoverInput, {marginBottom: 10}]}
           placeholder="Receiving Doctor"
           value={patientData.receivingDoctorName}
           onChangeText={(text) => handleChange("receivingDoctorName", text)}
         />
 
-        <TextInput
-          style={styles.handoverInput}
-          placeholder="Signature"
-          value={patientData.receivingDoctorSignature}
-          onChangeText={(text) =>
-            handleChange("receivingDoctorSignature", text)
+        <SignatureButton
+          onSignatureSave={(signature) =>
+            handleChange("receivingDoctorSignature", signature)
           }
+          title="Doctor Signature"
+          buttonText="Input Doctor Signature"
         />
 
         <TextInput
-          style={styles.handoverInput}
+          style={[styles.handoverInput, {marginTop: 10}]}
           placeholder="Date & Time"
           value={patientData.receivingDateTime}
           onChangeText={(text) => handleChange("receivingDateTime", text)}

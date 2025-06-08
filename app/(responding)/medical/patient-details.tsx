@@ -12,7 +12,7 @@ import {useIncident} from "@/context/IncidentContext";
 import {Ionicons} from "@expo/vector-icons";
 import {useRouter} from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import SignatureCanvas from "react-native-signature-canvas";
+import {SignatureButton} from "@/components/buttons/signatureButton";
 
 export default function PatientDetailsForm() {
   const {incidentState} = useIncident();
@@ -36,28 +36,6 @@ export default function PatientDetailsForm() {
     refusalExplanation: "",
     notes: "",
   });
-
-  const signatureRef = useRef(null);
-
-  const handleEnd = () => {
-    // Called when the user stops drawing
-    console.log("Signature drawing ended");
-  };
-
-  const handleSignature = (signature: string) => {
-    // Called when the user clicks the save button
-    handleChange("patientSignature", signature);
-  };
-
-  const handleEmpty = () => {
-    // Called when the signature pad is empty
-    console.log("Signature pad is empty");
-  };
-
-  const handleClear = () => {
-    // Called when the user clicks the clear button
-    handleChange("patientSignature", "");
-  };
 
   const handleChange = (field: string, value: string | boolean) => {
     setPatientData({
@@ -136,7 +114,7 @@ export default function PatientDetailsForm() {
       {/* Location and Time */}
       <View style={styles.locationContainer}>
         <Text style={styles.locationText}>
-          {incidentState?.location?.address || "Location unavailable"}
+          {incidentState?.incidentDetails?.location || "Location unavailable"}
         </Text>
         <Text style={styles.locationText}>
           {currentDate}, {currentTime}
@@ -243,32 +221,11 @@ export default function PatientDetailsForm() {
             </Text>
 
             <View style={styles.signatureContainer}>
-              <SignatureCanvas
-                ref={signatureRef}
-                onOK={handleSignature}
-                onEmpty={handleEmpty}
-                onClear={handleClear}
-                onEnd={handleEnd}
-                descriptionText="Sign here"
-                clearText="Clear"
-                confirmText="Save"
-                style={styles.signature}
-                webStyle={`
-                          .m-signature-pad {
-                            box-shadow: none;
-                            border: 1px solid #ddd;
-                            border-radius: 5px;
-                          }
-                          .m-signature-pad--body {
-                            border: none;
-                          }
-                          .m-signature-pad--footer {
-                            display: flex;
-                            justify-content: space-between;
-                            padding: 10px;
-                            background: #f8f8f8;
-                          }
-                        `}
+              <SignatureButton
+                onSignatureSave={(signature) =>
+                  handleChange("patientSignature", signature)
+                }
+                title="Patient Signature"
               />
             </View>
 
@@ -356,12 +313,8 @@ export default function PatientDetailsForm() {
 
 const styles = StyleSheet.create({
   signatureContainer: {
-    height: 200,
     marginVertical: 10,
-    backgroundColor: "white",
     borderRadius: 5,
-    borderWidth: 1,
-    borderColor: "#ddd",
   },
   signature: {
     flex: 1,
