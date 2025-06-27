@@ -10,7 +10,6 @@ import {
 import React, {useState, useEffect, useRef, useMemo, useCallback} from "react";
 import {useIncidentStore} from "@/context";
 import {useAuthStore} from "@/context";
-import {useCheckIn} from "@/context/checkInContext";
 import {useWebSocket} from "@/context/webSocketContext";
 import all from "@/utils/getIcon";
 import {useShakeAnimation} from "@/hooks/useShakeAnimation";
@@ -19,18 +18,11 @@ import {useRouter} from "expo-router";
 import {assignResponder} from "@/api/incidents/useUpdateIncident";
 import {denyIncident} from "@/api/incidents/useFetchIncident";
 import useLocation from "@/hooks/useLocation";
-import {
-  logIncident,
-  logSound,
-  logLocation,
-  logError,
-  logInfo,
-} from "@/utils/logger";
+import {logIncident, logSound, logLocation, logError} from "@/utils/logger";
 
 export default function NewIncidentModal({sounds}: {sounds: any}) {
   const {setCurrentIncident} = useIncidentStore();
   const {user_id} = useAuthStore();
-  const {isOnline} = useCheckIn();
   const {getUserLocation, getAddressFromCoords} = useLocation();
   const {pendingAssignment, respondToAssignment, clearPendingAssignment} =
     useWebSocket();
@@ -48,7 +40,6 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
     currentSound: null as any,
   });
 
-  // Get incident sound based on type
   const getIncidentSound = useCallback(
     (incidentType: string) => {
       if (!sounds) return null;
@@ -62,7 +53,6 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
     [sounds]
   );
 
-  // Stop all sounds
   const stopAllSounds = useCallback(async () => {
     try {
       logSound("CONTROL", "Stopping all sounds");
@@ -91,7 +81,6 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
     }
   }, [sounds]);
 
-  // Play incident sound
   const playIncidentSound = useCallback(
     async (incidentType: string) => {
       if (soundState.current.hasPlayed) {
@@ -126,7 +115,7 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
     [getIncidentSound, stopAllSounds]
   );
 
-  // Handle WebSocket assignment requests
+  // handle WebSocket requests
   useEffect(() => {
     if (pendingAssignment) {
       logIncident("ASSIGNMENT", "New assignment request received", {
@@ -155,7 +144,6 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
     };
   }, [pendingAssignment, visible, playIncidentSound, stopAllSounds]);
 
-  // Fetch address for incident location
   const fetchAddress = useCallback(
     async (lat: number, lon: number) => {
       try {
@@ -174,7 +162,6 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
     [getAddressFromCoords]
   );
 
-  // Update address when incident changes
   useEffect(() => {
     let isMounted = true;
     if (pendingAssignment?.incidentDetails?.coordinates) {
@@ -189,7 +176,7 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
     };
   }, [pendingAssignment, fetchAddress]);
 
-  // Handle respond to incident
+  // handle respond to incident
   const handleRespond = async () => {
     try {
       logIncident("RESPONSE", "Responder accepting assignment", {
@@ -207,7 +194,6 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
         return;
       }
 
-      // Get responder location
       const responderLoc = await getUserLocation();
       if (!responderLoc) {
         logError("LOCATION_RESPONSE", "Could not get responder location");
@@ -216,10 +202,10 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
 
       logLocation("RESPONSE", "Responder location obtained", responderLoc);
 
-      // Accept assignment via WebSocket
+      // accept assignment via WebSocket
       await respondToAssignment(pendingAssignment._id, true);
 
-      // Update incident in context
+      // update incident in context
       if (setCurrentIncident) {
         await setCurrentIncident({
           ...pendingAssignment,
@@ -247,7 +233,6 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
     }
   };
 
-  // Handle deny incident
   const handleDeny = async () => {
     logIncident("RESPONSE", "Responder denying assignment", {
       incidentId: pendingAssignment?._id,
@@ -259,7 +244,6 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
     setShowDenyModal(true);
   };
 
-  // Handle deny confirmation
   const handleDenyConfirm = async (reason: string) => {
     if (pendingAssignment?._id) {
       try {
@@ -268,12 +252,8 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
           reason,
         });
 
-        // Deny assignment via WebSocket
         await respondToAssignment(pendingAssignment._id, false);
-
-        // Also save to local storage for reference
         await denyIncident(pendingAssignment._id);
-
         logIncident("DENIAL", "Incident denied successfully");
       } catch (error) {
         logError("INCIDENT_DENIAL", "Error denying incident", error);
