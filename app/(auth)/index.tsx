@@ -12,14 +12,14 @@ import {
 } from "react-native";
 import React, {useState} from "react";
 import Spinner from "react-native-loading-spinner-overlay";
-import {useAuth} from "@/context/AuthContext";
+import {useAuthStore} from "@/context";
 import {useRouter} from "expo-router";
 
 export default function LogIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const {onLogin} = useAuth();
+  const {login} = useAuthStore();
 
   const logIn = async () => {
     Keyboard.dismiss();
@@ -34,7 +34,7 @@ export default function LogIn() {
         "Attempting login with URL:",
         process.env.EXPO_PUBLIC_API_URL
       );
-      const result = await onLogin!(email, password);
+      const result = await login(email, password);
 
       if (result?.error) {
         Alert.alert("Error", result.msg);

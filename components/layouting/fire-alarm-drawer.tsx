@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import React, {useEffect, useRef} from "react";
-import {useIncident} from "@/context/IncidentContext";
+import {useIncidentStore} from "@/context";
 import {FIRE_ALARM_LEVELS_ARRAY} from "@/constants/fire-alarm-levels";
 
 interface FireAlarmDrawerProps {
@@ -26,7 +26,7 @@ export default function FireAlarmDrawer({
   onSelectFireAlarm,
 }: FireAlarmDrawerProps) {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const {incidentState} = useIncident();
+  const {incidentState} = useIncidentStore();
 
   useEffect(() => {
     if (visible) {

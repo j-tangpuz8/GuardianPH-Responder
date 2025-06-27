@@ -11,10 +11,10 @@ import {
   Image,
 } from "react-native";
 import React, {useCallback, useEffect, useRef, useState} from "react";
-import {useIncident} from "@/context/IncidentContext";
+import {useIncidentStore} from "@/context";
+import {useAuthStore} from "@/context";
 import {useFetchFacilitiesByAssignment} from "@/api/facilities/useFetchFacilities";
 import {useFetchResponder} from "@/api/users/useFetchResponder";
-import {useAuth} from "@/context/AuthContext";
 import {STYLING_CONFIG} from "@/constants/styling-config";
 import useLocation from "@/hooks/useLocation";
 
@@ -36,9 +36,9 @@ export default function FacilityDrawer({
   facilityType,
 }: FacilityDrawerProps & {facilityType: keyof typeof STYLING_CONFIG}) {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const {incidentState} = useIncident();
-  const {authState} = useAuth();
-  const {data: responderData} = useFetchResponder(authState?.user_id || "");
+  const {incidentState} = useIncidentStore();
+  const {user_id} = useAuthStore();
+  const {data: responderData} = useFetchResponder(user_id || "");
   const {getAddressFromCoords} = useLocation();
   const [facilityDistances, setFacilityDistances] = useState<{
     [key: string]: {distance: number; duration: number};

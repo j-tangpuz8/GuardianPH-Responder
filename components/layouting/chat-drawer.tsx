@@ -16,8 +16,8 @@ import {
   MessageList,
 } from "stream-chat-expo";
 import {Channel as ChannelType} from "stream-chat";
-import {useAuth} from "../../context/AuthContext";
-import {useIncident} from "@/context/IncidentContext";
+import {useAuthStore} from "@/context";
+import {useIncidentStore} from "@/context";
 
 const STREAM_KEY = process.env.EXPO_PUBLIC_STREAM_ACCESS_KEY;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -35,8 +35,8 @@ export default function MessagesDrawer({
   const [channel, setChannel] = useState<
     ChannelType<DefaultStreamChatGenerics> | undefined
   >(undefined);
-  const {authState} = useAuth();
-  const {incidentState} = useIncident();
+  const {user_id, token} = useAuthStore();
+  const {incidentState} = useIncidentStore();
 
   const chatClient = useRef(StreamChat.getInstance(STREAM_KEY!)).current;
   const hash = incidentState?._id?.substring(5, 10);
@@ -48,17 +48,17 @@ export default function MessagesDrawer({
         if (!chatClient.userID) {
           await chatClient.connectUser(
             {
-              id: authState?.user_id!,
+              id: user_id!,
               name: "Responder",
               image: "@assets/images/userAvatar.png",
             },
-            authState?.token!
+            token!
           );
         }
 
         const channel = chatClient.channel("messaging", channelId, {
           name: "Responder Chat with LGU",
-          members: [authState?.user_id!],
+          members: [user_id!],
         });
 
         await channel.watch();
@@ -69,7 +69,7 @@ export default function MessagesDrawer({
       }
     };
 
-    if (visible && authState?.token && authState?.user_id) {
+    if (visible && token && user_id) {
       connectToChannel();
     }
 

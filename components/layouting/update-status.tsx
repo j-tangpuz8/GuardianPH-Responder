@@ -14,7 +14,7 @@ import {
   updateResponderStatus,
   requestCloseIncident,
 } from "@/api/incidents/useUpdateIncident";
-import {useIncident} from "@/context/IncidentContext";
+import {useIncidentStore} from "@/context";
 import {STYLING_CONFIG} from "@/constants/styling-config";
 import FireAlarmDrawer from "./fire-alarm-drawer";
 
@@ -34,7 +34,7 @@ export default function UpdateStatusModal({
   const [closeIncidentVisible, setCloseIncidentVisible] =
     useState<boolean>(false);
   const [showFacilities, setShowFacilities] = useState<boolean>(false);
-  const {incidentState, setCurrentIncident} = useIncident();
+  const {incidentState, setCurrentIncident} = useIncidentStore();
   const [showFireAlarms, setShowFireAlarms] = useState<boolean>(false);
 
   useEffect(() => {

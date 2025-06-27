@@ -13,12 +13,12 @@ import {Ionicons} from "@expo/vector-icons";
 import {useFetchResponder} from "@/api/users/useFetchResponder";
 import {useRouter} from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import {useAuth} from "@/context/AuthContext";
+import {useAuthStore} from "@/context";
 import {SignatureButton} from "@/components/buttons/signatureButton";
 
 export default function VitalSigns() {
-  const {authState} = useAuth();
-  const {data: responderData} = useFetchResponder(authState?.user_id || "");
+  const {user_id} = useAuthStore();
+  const {data: responderData} = useFetchResponder(user_id || "");
 
   const [patientData, setPatientData] = useState({
     firstName: "",

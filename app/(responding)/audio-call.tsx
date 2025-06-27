@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import {useIncident} from "@/context/IncidentContext";
-import {useAuth} from "@/context/AuthContext";
+import {useIncidentStore} from "@/context";
+import {useAuthStore} from "@/context";
 import {
   useCall,
   StreamCall,
@@ -18,8 +18,8 @@ import {useRouter, useLocalSearchParams} from "expo-router";
 import {FontAwesome} from "@expo/vector-icons";
 
 export default function AudioCall() {
-  const {incidentState} = useIncident();
-  const {authState} = useAuth();
+  const {incidentState} = useIncidentStore();
+  const {user_id} = useAuthStore();
   const router = useRouter();
   const client = useStreamVideoClient();
   const {callId} = useLocalSearchParams<{callId: string}>();

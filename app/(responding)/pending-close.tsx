@@ -6,12 +6,12 @@ import {
   BackHandler,
 } from "react-native";
 import React, {useEffect} from "react";
-import {useIncident} from "@/context/IncidentContext";
+import {useIncidentStore} from "@/context";
 import {useRouter} from "expo-router";
 import {useFetchIncidentStatus} from "@/api/incidents/useFetchIncidentStatus";
 
 export default function WaitingApprovalScreen() {
-  const {incidentState, clearIncident} = useIncident();
+  const {incidentState, clearIncident} = useIncidentStore();
   const router = useRouter();
   const {data: incidentData} = useFetchIncidentStatus(incidentState?._id || "");
   const isFinished = incidentData?.isFinished;

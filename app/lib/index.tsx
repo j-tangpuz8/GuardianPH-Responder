@@ -6,20 +6,22 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
-import React, {useMemo} from "react";
-import MapView, {PROVIDER_GOOGLE} from "react-native-maps";
-import {useCheckIn} from "@/context/CheckInContext";
-import {useAuth} from "@/context/AuthContext";
+import React from "react";
+import {useCheckIn} from "@/context/checkInContext";
+import {useAuthStore} from "@/context";
+import {useWebSocket} from "@/context/webSocketContext";
 import NewIncidentModal from "@/components/modals/new-incident-modal";
 import {clearDeniedIncidents} from "@/api/incidents/useFetchIncident";
 import {useFetchResponder} from "@/api/users/useFetchResponder";
 import {useAssignmentIcon} from "@/hooks/useAssignmentIcon";
 import {useSound} from "@/utils/PlaySound";
+import {logInfo, logWarn} from "@/utils/logger";
 
 export default function CheckInPage() {
   const {isOnline, setIsOnline} = useCheckIn();
-  const {authState, onLogout} = useAuth();
-  const {data: responderData} = useFetchResponder(authState?.user_id || "");
+  const {user_id, logout} = useAuthStore();
+  const {isConnected} = useWebSocket();
+  const {data: responderData} = useFetchResponder(user_id || "");
   const assignmentIcon = useAssignmentIcon();
 
   const medicalSound = useSound(require("@/assets/sounds/ambulance.mp3"));
@@ -28,7 +30,33 @@ export default function CheckInPage() {
   const generalSound = useSound(require("@/assets/sounds/general.mp3"));
 
   const handleClick = () => {
-    setIsOnline(!isOnline);
+    const newStatus = !isOnline;
+    logInfo(
+      "CHECKIN",
+      `Responder ${newStatus ? "checking in" : "checking out"}`,
+      {
+        responderId: user_id,
+        newStatus,
+      }
+    );
+    setIsOnline(newStatus);
+  };
+
+  // Determine status message based on online status and WebSocket connection
+  const getStatusMessage = () => {
+    if (!isOnline) {
+      return "Please Check In to Receive Dispatch";
+    }
+    if (!isConnected) {
+      return "Connecting to Dispatch System...";
+    }
+    return "On Active Standby, Waiting for Dispatch";
+  };
+
+  const getStatusColor = () => {
+    if (!isOnline) return "#FF6B6B";
+    if (!isConnected) return "#FFA500";
+    return "#8BC34A";
   };
 
   return (
@@ -66,18 +94,10 @@ export default function CheckInPage() {
             </View>
             <Text style={styles.subtitle}>Bantay Mandaue Command Center</Text>
             <View style={styles.statusContainer}>
-              <Text
-                style={[
-                  styles.statusText,
-                  {color: isOnline ? "#8BC34A" : "#FF6B6B"},
-                ]}>
+              <Text style={[styles.statusText, {color: getStatusColor()}]}>
                 {isOnline ? "ONLINE" : "OFFLINE"}
               </Text>
-              <Text style={styles.message}>
-                {!isOnline
-                  ? "Please Check In to Recieve Dispatch"
-                  : "On Active Standby, Waiting for Dispatch"}
-              </Text>
+              <Text style={styles.message}>{getStatusMessage()}</Text>
             </View>
             <TouchableOpacity
               style={[
@@ -93,7 +113,10 @@ export default function CheckInPage() {
               <>
                 <TouchableOpacity
                   style={styles.clearButton}
-                  onPress={() => clearDeniedIncidents()}>
+                  onPress={() => {
+                    logInfo("TESTING", "Clearing denied incidents list");
+                    clearDeniedIncidents();
+                  }}>
                   <Text style={styles.clearButtonWarning}>
                     *For testing purposes only
                   </Text>
@@ -103,7 +126,10 @@ export default function CheckInPage() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.clearButton}
-                  onPress={() => onLogout?.()}>
+                  onPress={() => {
+                    logInfo("AUTH", "User logging out");
+                    logout();
+                  }}>
                   <Text style={styles.clearButtonText}>LOGOUT</Text>
                 </TouchableOpacity>
               </>
@@ -180,6 +206,7 @@ const styles = StyleSheet.create({
   message: {
     color: "white",
     fontSize: 14,
+    marginBottom: 5,
   },
   checkInButton: {
     backgroundColor: "#8BC34A",

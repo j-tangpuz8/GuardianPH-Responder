@@ -7,7 +7,7 @@ import {
   TextInput,
 } from "react-native";
 import React, {useState} from "react";
-import {useIncident} from "@/context/IncidentContext";
+import {useIncidentStore} from "@/context";
 
 interface DenyIncidentModalProps {
   visible: boolean;
@@ -24,7 +24,7 @@ export default function DenyIncidentModal({
 }: DenyIncidentModalProps) {
   const [selectedReason, setSelectedReason] = useState<string>("");
   const [customReason, setCustomReason] = useState<string>("");
-  const {incidentState, setCurrentIncident, clearIncident} = useIncident();
+  const {incidentState, setCurrentIncident, clearIncident} = useIncidentStore();
 
   const reasons = ["Crew not ready", "On Break", "Maintenance", "Specify"];
 

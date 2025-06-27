@@ -11,7 +11,7 @@ import {
   Image,
 } from "react-native";
 import React, {useEffect, useRef, useState} from "react";
-import {useIncident} from "@/context/IncidentContext";
+import {useIncidentStore} from "@/context";
 import {useRouter} from "expo-router";
 
 interface CloseIncidentDrawerProps {
@@ -29,7 +29,7 @@ export default function CloseIncidentDrawer({
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [message, setMessage] = useState("");
   const [rating, setRating] = useState(5);
-  const {incidentState, clearIncident} = useIncident();
+  const {incidentState, clearIncident} = useIncidentStore();
   const router = useRouter();
 
   useEffect(() => {

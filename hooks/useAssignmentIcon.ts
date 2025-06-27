@@ -1,9 +1,9 @@
-import {useAuth} from "@/context/AuthContext";
+import {useAuthStore} from "@/context";
 import {useFetchResponder} from "@/api/users/useFetchResponder";
 
 export const useAssignmentIcon = () => {
-  const {authState} = useAuth();
-  const {data: responderData} = useFetchResponder(authState?.user_id || "");
+  const {user_id} = useAuthStore();
+  const {data: responderData} = useFetchResponder(user_id || "");
 
   switch (responderData?.assignment) {
     case "ambulance":

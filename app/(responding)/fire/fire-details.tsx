@@ -8,13 +8,13 @@ import {
   Pressable,
 } from "react-native";
 import React, {useState} from "react";
-import {useIncident} from "@/context/IncidentContext";
+import {useIncidentStore} from "@/context";
 import {Ionicons} from "@expo/vector-icons";
 import {useRouter} from "expo-router";
 import * as SecureStore from "expo-secure-store";
 
 export default function FireDetails() {
-  const {incidentState} = useIncident();
+  const {incidentState} = useIncidentStore();
   const router = useRouter();
   const [patientData, setPatientData] = useState({
     firstName: "",

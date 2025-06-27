@@ -1,23 +1,27 @@
+import React from "react";
 import {View, Text, StyleSheet, TouchableOpacity} from "react-native";
 import {FontAwesome5} from "@expo/vector-icons";
-import {useState} from "react";
 import {useRouter} from "expo-router";
-import {useIncident} from "@/context/IncidentContext";
-import {useAuth} from "@/context/AuthContext";
+import {useIncidentStore} from "@/context";
+import {useAuthStore} from "@/context";
 import {useStreamVideoClient} from "@stream-io/video-react-native-sdk";
 import UpdateStatusModal from "./update-status";
 import MessagesDrawer from "./chat-drawer";
 
 export default function BottomNavigation() {
   const router = useRouter();
-  const [showStatusModal, setShowStatusModal] = useState(false);
-  const [showMessagesDrawer, setShowMessagesDrawer] = useState(false);
-  const {incidentState} = useIncident();
-  const {authState, onLogout} = useAuth();
+  const [showStatusModal, setShowStatusModal] = React.useState(false);
+  const [showMessagesDrawer, setShowMessagesDrawer] = React.useState(false);
+  const {incidentState} = useIncidentStore();
+  const {logout, user_id} = useAuthStore();
   const client = useStreamVideoClient();
 
+  const handleLogout = () => {
+    logout();
+  };
+
   const initiateAudioCall = async () => {
-    if (!client || !incidentState?.lgu || !authState?.user_id) {
+    if (!client || !incidentState?.lgu || !user_id) {
       alert("Cannot initiate call - missing required information");
       return;
     }
@@ -29,7 +33,7 @@ export default function BottomNavigation() {
       await outgoingCall.getOrCreate({
         data: {
           members: [
-            {user_id: authState.user_id, role: "call_member"},
+            {user_id: user_id, role: "call_member"},
             {user_id: String(incidentState.lgu._id), role: "call_member"},
           ],
           settings_override: {
@@ -78,7 +82,7 @@ export default function BottomNavigation() {
           <FontAwesome5 name="bars" size={24} color="white" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.tab} onPress={() => onLogout?.()}>
+        <TouchableOpacity style={styles.tab} onPress={handleLogout}>
           <FontAwesome5 name="sign-out-alt" size={24} color="white" />
         </TouchableOpacity>
       </View>

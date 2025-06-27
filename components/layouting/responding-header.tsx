@@ -1,11 +1,11 @@
 import {View, Text, StyleSheet, TouchableOpacity, Image} from "react-native";
-import {useIncident} from "@/context/IncidentContext";
+import {useIncidentStore} from "@/context";
 import all from "@/utils/getIcon";
 import {useEffect, useState} from "react";
 import {useRouter} from "expo-router";
 
 export default function RespondingHeader() {
-  const {incidentState} = useIncident();
+  const {incidentState} = useIncidentStore();
   const router = useRouter();
   const [currentStatus, setCurrentStatus] = useState<string | null>(null);
 

@@ -6,7 +6,7 @@ import React, {
   useCallback,
 } from "react";
 import * as SecureStore from "expo-secure-store";
-import {useAuth} from "./AuthContext";
+import {useAuthStore} from "@/context";
 
 type CheckInContextType = {
   isOnline: boolean;
@@ -15,34 +15,33 @@ type CheckInContextType = {
 
 const CheckInContext = createContext<CheckInContextType | undefined>(undefined);
 
-export function CheckInProvider({children}: {children: React.ReactNode}) {
-  const {authState} = useAuth();
-  const userId = authState?.user_id;
+export const CheckInProvider = ({children}: any) => {
+  const {user_id} = useAuthStore();
   const [isOnline, setIsOnlineState] = useState(false);
 
   useEffect(() => {
     const loadCheckIn = async () => {
-      if (!userId) {
+      if (!user_id) {
         setIsOnlineState(false);
         return;
       }
-      const stored = await SecureStore.getItemAsync(`checkin-${userId}`);
+      const stored = await SecureStore.getItemAsync(`checkin-${user_id}`);
       setIsOnlineState(stored === "true");
     };
     loadCheckIn();
-  }, [userId]);
+  }, [user_id]);
 
   const setIsOnline = useCallback(
     async (status: boolean) => {
       setIsOnlineState(status);
-      if (userId) {
+      if (user_id) {
         await SecureStore.setItemAsync(
-          `checkin-${userId}`,
+          `checkin-${user_id}`,
           status ? "true" : "false"
         );
       }
     },
-    [userId]
+    [user_id]
   );
 
   return (
@@ -50,7 +49,7 @@ export function CheckInProvider({children}: {children: React.ReactNode}) {
       {children}
     </CheckInContext.Provider>
   );
-}
+};
 
 export function useCheckIn() {
   const context = useContext(CheckInContext);

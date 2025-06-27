@@ -11,7 +11,7 @@ import React, {useEffect, useState, useRef, useMemo, useCallback} from "react";
 import useLocation from "@/hooks/useLocation";
 import MapView, {Marker, PROVIDER_GOOGLE, Region} from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
-import {useIncident} from "@/context/IncidentContext";
+import {useIncidentStore} from "@/context";
 import all from "@/utils/getIcon";
 import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 import {useFocusEffect} from "expo-router";
@@ -25,7 +25,7 @@ const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 
 const index = () => {
   const {lat, lon, errorMsg, getUserLocation} = useLocation();
-  const {incidentState, clearIncident} = useIncident();
+  const {incidentState, clearIncident} = useIncidentStore();
 
   const [mapRegion, setMapRegion] = useState<Region | null>(null);
   const [distance, setDistance] = useState<string | null>(null);

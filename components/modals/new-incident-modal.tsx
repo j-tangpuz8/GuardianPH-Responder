@@ -8,27 +8,33 @@ import {
   Animated,
 } from "react-native";
 import React, {useState, useEffect, useRef, useMemo, useCallback} from "react";
-import {useIncident} from "@/context/IncidentContext";
-import {useCheckIn} from "@/context/CheckInContext";
+import {useIncidentStore} from "@/context";
+import {useAuthStore} from "@/context";
+import {useCheckIn} from "@/context/checkInContext";
+import {useWebSocket} from "@/context/webSocketContext";
 import all from "@/utils/getIcon";
 import {useShakeAnimation} from "@/hooks/useShakeAnimation";
 import DenyIncidentModal from "./deny-incident-modal";
 import {useRouter} from "expo-router";
 import {assignResponder} from "@/api/incidents/useUpdateIncident";
-import {
-  useIncidentForResponder,
-  denyIncident,
-} from "@/api/incidents/useFetchIncident";
-import {useAuth} from "@/context/AuthContext";
+import {denyIncident} from "@/api/incidents/useFetchIncident";
 import useLocation from "@/hooks/useLocation";
-import {useSound} from "@/utils/PlaySound";
-import {Incident} from "@/types/incident";
+import {
+  logIncident,
+  logSound,
+  logLocation,
+  logError,
+  logInfo,
+} from "@/utils/logger";
 
 export default function NewIncidentModal({sounds}: {sounds: any}) {
-  const {setCurrentIncident} = useIncident();
-  const {authState} = useAuth();
+  const {setCurrentIncident} = useIncidentStore();
+  const {user_id} = useAuthStore();
   const {isOnline} = useCheckIn();
   const {getUserLocation, getAddressFromCoords} = useLocation();
+  const {pendingAssignment, respondToAssignment, clearPendingAssignment} =
+    useWebSocket();
+
   const [visible, setVisible] = useState(false);
   const shakeStyle = useShakeAnimation(visible);
   const [showDenyModal, setShowDenyModal] = useState(false);
@@ -36,18 +42,13 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
   const [isAssigning, setIsAssigning] = useState(false);
   const router = useRouter();
   const [address, setAddress] = useState<string | null>(null);
-  const [currentIncidentIndex, setCurrentIncidentIndex] = useState(0);
-
-  const {data: incidents = []} = useIncidentForResponder(
-    authState?.user_id || ""
-  );
-  const currentIncident = incidents[currentIncidentIndex];
 
   const soundState = useRef({
     hasPlayed: false,
     currentSound: null as any,
   });
 
+  // Get incident sound based on type
   const getIncidentSound = useCallback(
     (incidentType: string) => {
       if (!sounds) return null;
@@ -61,8 +62,10 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
     [sounds]
   );
 
+  // Stop all sounds
   const stopAllSounds = useCallback(async () => {
     try {
+      logSound("CONTROL", "Stopping all sounds");
       const soundPromises = [];
 
       if (sounds?.medical && !sounds.medical.isLoading) {
@@ -82,65 +85,100 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
 
       soundState.current.hasPlayed = false;
       soundState.current.currentSound = null;
+      logSound("CONTROL", "All sounds stopped successfully");
     } catch (error) {
-      console.error("Error stopping sounds:", error);
+      logError("SOUND_CONTROL", "Error stopping sounds", error);
     }
   }, [sounds]);
 
+  // Play incident sound
   const playIncidentSound = useCallback(
     async (incidentType: string) => {
-      if (soundState.current.hasPlayed) return;
+      if (soundState.current.hasPlayed) {
+        logSound("PLAYBACK", "Sound already played, skipping");
+        return;
+      }
 
       try {
         const sound = getIncidentSound(incidentType);
-        if (!sound || sound.isLoading) return;
+        if (!sound || sound.isLoading) {
+          logSound("PLAYBACK", "Sound not available or loading", {
+            incidentType,
+            hasSound: !!sound,
+            isLoading: sound?.isLoading,
+          });
+          return;
+        }
 
+        logSound("PLAYBACK", "Playing incident sound", {incidentType});
         await stopAllSounds();
         await sound.playSound();
 
         soundState.current.hasPlayed = true;
         soundState.current.currentSound = sound;
+        logSound("PLAYBACK", "Incident sound played successfully", {
+          incidentType,
+        });
       } catch (error) {
-        console.error("Error playing sound:", error);
+        logError("SOUND_PLAYBACK", "Error playing sound", error);
       }
     },
     [getIncidentSound, stopAllSounds]
   );
 
+  // Handle WebSocket assignment requests
   useEffect(() => {
-    if (incidents.length > 0) {
+    if (pendingAssignment) {
+      logIncident("ASSIGNMENT", "New assignment request received", {
+        incidentId: pendingAssignment._id,
+        incidentType: pendingAssignment.incidentType,
+      });
+
       if (!visible) {
         setVisible(true);
+        logIncident("MODAL", "Opening incident modal for new assignment");
       }
-      if (currentIncident && !soundState.current.hasPlayed) {
-        playIncidentSound(currentIncident.incidentType);
+
+      if (!soundState.current.hasPlayed) {
+        playIncidentSound(pendingAssignment.incidentType);
       }
     } else {
-      setVisible(false);
+      if (visible) {
+        setVisible(false);
+        logIncident("MODAL", "Closing incident modal - no pending assignment");
+      }
       stopAllSounds();
     }
+
     return () => {
       stopAllSounds();
     };
-  }, [incidents, currentIncident, visible, playIncidentSound, stopAllSounds]);
+  }, [pendingAssignment, visible, playIncidentSound, stopAllSounds]);
 
+  // Fetch address for incident location
   const fetchAddress = useCallback(
     async (lat: number, lon: number) => {
       try {
+        logLocation("GEOCODING", "Fetching address from coordinates", {
+          lat,
+          lon,
+        });
         const address = await getAddressFromCoords(lat, lon);
         setAddress(address);
+        logLocation("GEOCODING", "Address fetched successfully", {address});
       } catch (error) {
-        console.error("Error fetching address:", error);
+        logError("LOCATION_GEOCODING", "Error fetching address", error);
         setAddress("Location unavailable");
       }
     },
     [getAddressFromCoords]
   );
 
+  // Update address when incident changes
   useEffect(() => {
     let isMounted = true;
-    if (currentIncident?.incidentDetails?.coordinates) {
-      const {lat, lon} = currentIncident.incidentDetails.coordinates;
+    if (pendingAssignment?.incidentDetails?.coordinates) {
+      const {lat, lon} = pendingAssignment.incidentDetails.coordinates;
       fetchAddress(lat, lon).then(() => {
         if (!isMounted) return;
       });
@@ -149,60 +187,96 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
     return () => {
       isMounted = false;
     };
-  }, [currentIncident, fetchAddress]);
+  }, [pendingAssignment, fetchAddress]);
 
+  // Handle respond to incident
   const handleRespond = async () => {
     try {
+      logIncident("RESPONSE", "Responder accepting assignment", {
+        incidentId: pendingAssignment?._id,
+      });
+
       await stopAllSounds();
       setIsAssigning(true);
 
-      if (!currentIncident || !authState?.user_id) return;
+      if (!pendingAssignment || !user_id) {
+        logError("INCIDENT_RESPONSE", "Missing required data for response", {
+          hasIncident: !!pendingAssignment,
+          hasUserId: !!user_id,
+        });
+        return;
+      }
 
+      // Get responder location
       const responderLoc = await getUserLocation();
-      if (!responderLoc) throw new Error("Could not get responder location");
+      if (!responderLoc) {
+        logError("LOCATION_RESPONSE", "Could not get responder location");
+        throw new Error("Could not get responder location");
+      }
 
-      await assignResponder(currentIncident._id, authState.user_id, {
-        lat: responderLoc.latitude,
-        lon: responderLoc.longitude,
-      });
+      logLocation("RESPONSE", "Responder location obtained", responderLoc);
 
+      // Accept assignment via WebSocket
+      await respondToAssignment(pendingAssignment._id, true);
+
+      // Update incident in context
       if (setCurrentIncident) {
         await setCurrentIncident({
-          ...currentIncident,
+          ...pendingAssignment,
           responderCoordinates: {
             lat: responderLoc.latitude,
             lon: responderLoc.longitude,
           },
           incidentDetails: {
-            ...currentIncident.incidentDetails,
+            ...pendingAssignment.incidentDetails,
             location: address || "",
           },
         });
+        logIncident(
+          "CONTEXT",
+          "Incident context updated with responder location"
+        );
       }
+
       router.push("/(responding)");
+      logIncident("NAVIGATION", "Navigating to responding screen");
     } catch (error) {
-      console.error("Error responding to incident:", error);
+      logError("INCIDENT_RESPONSE", "Error responding to incident", error);
     } finally {
       setIsAssigning(false);
     }
   };
 
+  // Handle deny incident
   const handleDeny = async () => {
+    logIncident("RESPONSE", "Responder denying assignment", {
+      incidentId: pendingAssignment?._id,
+    });
+
     await stopAllSounds();
     setIsDenying(true);
     setVisible(false);
     setShowDenyModal(true);
   };
 
+  // Handle deny confirmation
   const handleDenyConfirm = async (reason: string) => {
-    if (currentIncident?._id) {
-      await denyIncident(currentIncident._id);
+    if (pendingAssignment?._id) {
+      try {
+        logIncident("DENIAL", "Processing incident denial", {
+          incidentId: pendingAssignment._id,
+          reason,
+        });
 
-      if (currentIncidentIndex < incidents.length - 1) {
-        setCurrentIncidentIndex((prev) => prev + 1);
-        setVisible(true);
-      } else {
-        setVisible(false);
+        // Deny assignment via WebSocket
+        await respondToAssignment(pendingAssignment._id, false);
+
+        // Also save to local storage for reference
+        await denyIncident(pendingAssignment._id);
+
+        logIncident("DENIAL", "Incident denied successfully");
+      } catch (error) {
+        logError("INCIDENT_DENIAL", "Error denying incident", error);
       }
     }
     setShowDenyModal(false);
@@ -211,7 +285,7 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
 
   return (
     <>
-      {!isDenying && visible && currentIncident && (
+      {!isDenying && visible && pendingAssignment && (
         <Modal transparent visible={visible} animationType="fade">
           <View style={styles.modalContainer}>
             <Animated.View style={[styles.modalContent, shakeStyle]}>
@@ -223,17 +297,17 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
                   styles.incidentDetails,
                   {
                     backgroundColor: all.getIncidentTypeColor(
-                      currentIncident?.incidentType
+                      pendingAssignment?.incidentType
                     ),
                   },
                 ]}>
                 <Image
-                  source={all.GetEmergencyIcon(currentIncident?.incidentType)}
+                  source={all.GetEmergencyIcon(pendingAssignment?.incidentType)}
                   style={styles.icon}
                 />
                 <View style={styles.textContainer}>
                   <Text style={styles.incidentType}>
-                    {currentIncident.incidentType?.toUpperCase()}
+                    {pendingAssignment.incidentType?.toUpperCase()}
                   </Text>
                   <Text
                     style={styles.incidentLocation}
@@ -264,7 +338,7 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
       )}
       <DenyIncidentModal
         visible={showDenyModal}
-        incidentId={currentIncident?._id}
+        incidentId={pendingAssignment?._id}
         onClose={() => {
           setShowDenyModal(false);
           setIsDenying(false);
