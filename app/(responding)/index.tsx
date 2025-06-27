@@ -25,7 +25,7 @@ const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 
 const index = () => {
   const {lat, lon, errorMsg, getUserLocation} = useLocation();
-  const {incidentState, clearIncident} = useIncidentStore();
+  const {incidentState, clearActiveIncident} = useIncidentStore();
 
   const [mapRegion, setMapRegion] = useState<Region | null>(null);
   const [distance, setDistance] = useState<string | null>(null);

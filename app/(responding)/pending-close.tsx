@@ -11,7 +11,7 @@ import {useRouter} from "expo-router";
 import {useFetchIncidentStatus} from "@/api/incidents/useFetchIncidentStatus";
 
 export default function WaitingApprovalScreen() {
-  const {incidentState, clearIncident} = useIncidentStore();
+  const {incidentState, clearActiveIncident} = useIncidentStore();
   const router = useRouter();
   const {data: incidentData} = useFetchIncidentStatus(incidentState?._id || "");
   const isFinished = incidentData?.isFinished;
@@ -20,15 +20,15 @@ export default function WaitingApprovalScreen() {
   useEffect(() => {
     if (isFinished) {
       const handleFinished = async () => {
-        if (clearIncident) {
-          await clearIncident();
+        if (clearActiveIncident) {
+          await clearActiveIncident();
         }
         router.replace("/lib");
       };
 
       handleFinished();
     }
-  }, [isFinished, clearIncident, router]);
+  }, [isFinished, clearActiveIncident, router]);
 
   // disabble back button in android device
   useEffect(() => {

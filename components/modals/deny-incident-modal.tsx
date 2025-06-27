@@ -24,7 +24,8 @@ export default function DenyIncidentModal({
 }: DenyIncidentModalProps) {
   const [selectedReason, setSelectedReason] = useState<string>("");
   const [customReason, setCustomReason] = useState<string>("");
-  const {incidentState, setCurrentIncident, clearIncident} = useIncidentStore();
+  const {incidentState, setCurrentIncident, clearActiveIncident} =
+    useIncidentStore();
 
   const reasons = ["Crew not ready", "On Break", "Maintenance", "Specify"];
 

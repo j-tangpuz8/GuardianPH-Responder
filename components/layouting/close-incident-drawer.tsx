@@ -29,7 +29,7 @@ export default function CloseIncidentDrawer({
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [message, setMessage] = useState("");
   const [rating, setRating] = useState(5);
-  const {incidentState, clearIncident} = useIncidentStore();
+  const {incidentState, clearActiveIncident} = useIncidentStore();
   const router = useRouter();
 
   useEffect(() => {

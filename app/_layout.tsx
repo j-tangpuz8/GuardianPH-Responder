@@ -28,63 +28,78 @@ const InitialLayout = () => {
 
   useEffect(() => {
     if (!initialized) return;
-    const inAuthGroup = segments[0] === "lib";
-    if (authenticated && !inAuthGroup) {
-      logAuth("NAVIGATION", "Authenticated and in Authgroup");
-      router.replace("/lib");
-    } else if (!authenticated) {
-      logAuth("NAVIGATION", "NOT Authenticated");
+
+    const currentSegment = segments[0];
+    const isAuthPage = currentSegment === "(auth)";
+    const isLibPage = currentSegment === "lib";
+    const isRespondingPage = currentSegment === "(responding)";
+
+    const hasActiveIncident =
+      incidentState && Object.keys(incidentState).length > 0;
+    const isIncidentAssigned =
+      user_id && hasActiveIncident && isIncidentAssignedToCurrentUser(user_id);
+
+    if (!authenticated) {
+      logAuth("NAVIGATION", "User not authenticated, redirecting to auth");
       client?.disconnectUser();
-      router.replace("/(auth)");
+      if (!isAuthPage) {
+        router.replace("/(auth)");
+      }
+      return;
     }
-  }, [authenticated, initialized]);
 
-  useEffect(() => {
-    if (!initialized || !authenticated) return;
+    if (authenticated) {
+      if (isIncidentAssigned) {
+        logIncident(
+          "NAVIGATION",
+          "Active incident assigned to current user, navigating to responding"
+        );
+        if (!isRespondingPage) {
+          router.replace("/(responding)");
+        }
+        return;
+      }
 
-    const isMainLibPage = segments.length === 1 && segments[0] === "lib";
-    const isAuthPage = segments[0] === "(auth)";
-
-    if (!isMainLibPage && !isAuthPage) {
-      if (!incidentState || Object.keys(incidentState).length === 0) {
+      if (!hasActiveIncident && !isLibPage && !isAuthPage) {
         logIncident("NAVIGATION", "No active incident, redirecting to home");
         router.replace("/lib");
+        return;
+      }
+
+      if (isAuthPage) {
+        logAuth(
+          "NAVIGATION",
+          "Authenticated user on auth page, redirecting to lib"
+        );
+        router.replace("/lib");
+        return;
       }
     }
-  }, [incidentState, segments, initialized, authenticated]);
+  }, [
+    authenticated,
+    initialized,
+    incidentState,
+    user_id,
+    segments,
+    isIncidentAssignedToCurrentUser,
+  ]);
 
   useEffect(() => {
-    if (authenticated && token) {
+    if (authenticated && token && user_id) {
       logAuth("STREAM", "Creating Stream video client");
-      const user: User = {id: user_id!};
+      const user: User = {id: user_id};
       try {
-        const client = StreamVideoClient.getOrCreateInstance({
+        const streamClient = StreamVideoClient.getOrCreateInstance({
           apiKey: STREAM_KEY!,
           user,
           token: token,
         });
-        setClient(client);
+        setClient(streamClient);
       } catch (e) {
         logAuth("STREAM", "Error creating Stream video client", e);
       }
     }
   }, [authenticated, token, user_id]);
-
-  useEffect(() => {
-    if (
-      authenticated &&
-      incidentState &&
-      Object.keys(incidentState).length > 0 &&
-      user_id &&
-      isIncidentAssignedToCurrentUser(user_id)
-    ) {
-      logIncident(
-        "NAVIGATION",
-        "Active incident assigned to current user, navigating to responding"
-      );
-      router.replace("/(responding)");
-    }
-  }, [authenticated, incidentState, user_id, isIncidentAssignedToCurrentUser]);
 
   return (
     <>
