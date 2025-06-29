@@ -24,9 +24,7 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
   const {setCurrentIncident} = useIncidentStore();
   const {user_id} = useAuthStore();
   const {getUserLocation, getAddressFromCoords} = useLocation();
-  const {pendingAssignment, respondToAssignment, clearPendingAssignment} =
-    useWebSocket();
-
+  const {pendingAssignment, respondToAssignment} = useWebSocket();
   const [visible, setVisible] = useState(false);
   const shakeStyle = useShakeAnimation(visible);
   const [showDenyModal, setShowDenyModal] = useState(false);
@@ -34,6 +32,7 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
   const [isAssigning, setIsAssigning] = useState(false);
   const router = useRouter();
   const [address, setAddress] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   const soundState = useRef({
     hasPlayed: false,
@@ -54,35 +53,100 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
   );
 
   const stopAllSounds = useCallback(async () => {
+    if (!mountedRef.current) {
+      return;
+    }
+
     try {
       logSound("CONTROL", "Stopping all sounds");
       const soundPromises = [];
+      if (
+        sounds?.medical &&
+        !sounds.medical.isLoading &&
+        sounds.medical.stopSound &&
+        !sounds.medical.error
+      ) {
+        soundPromises.push(
+          sounds.medical.stopSound().catch((error: unknown) => {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            logSound("CONTROL", "Medical sound stop error (ignored)", {
+              error: errorMessage,
+            });
+          })
+        );
+      }
+      if (
+        sounds?.police &&
+        !sounds.police.isLoading &&
+        sounds.police.stopSound &&
+        !sounds.police.error
+      ) {
+        soundPromises.push(
+          sounds.police.stopSound().catch((error: unknown) => {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            logSound("CONTROL", "Police sound stop error (ignored)", {
+              error: errorMessage,
+            });
+          })
+        );
+      }
+      if (
+        sounds?.fire &&
+        !sounds.fire.isLoading &&
+        sounds.fire.stopSound &&
+        !sounds.fire.error
+      ) {
+        soundPromises.push(
+          sounds.fire.stopSound().catch((error: unknown) => {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            logSound("CONTROL", "Fire sound stop error (ignored)", {
+              error: errorMessage,
+            });
+          })
+        );
+      }
+      if (
+        sounds?.general &&
+        !sounds.general.isLoading &&
+        sounds.general.stopSound &&
+        !sounds.general.error
+      ) {
+        soundPromises.push(
+          sounds.general.stopSound().catch((error: unknown) => {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            logSound("CONTROL", "General sound stop error (ignored)", {
+              error: errorMessage,
+            });
+          })
+        );
+      }
 
-      if (sounds?.medical && !sounds.medical.isLoading) {
-        soundPromises.push(sounds.medical.stopSound());
+      if (soundPromises.length > 0) {
+        await Promise.allSettled(soundPromises);
       }
-      if (sounds?.police && !sounds.police.isLoading) {
-        soundPromises.push(sounds.police.stopSound());
-      }
-      if (sounds?.fire && !sounds.fire.isLoading) {
-        soundPromises.push(sounds.fire.stopSound());
-      }
-      if (sounds?.general && !sounds.general.isLoading) {
-        soundPromises.push(sounds.general.stopSound());
-      }
-
-      await Promise.allSettled(soundPromises);
 
       soundState.current.hasPlayed = false;
       soundState.current.currentSound = null;
       logSound("CONTROL", "All sounds stopped successfully");
     } catch (error) {
-      logError("SOUND_CONTROL", "Error stopping sounds", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      logSound("CONTROL", "Non-critical error during sound cleanup", {
+        error: errorMessage,
+      });
     }
   }, [sounds]);
 
   const playIncidentSound = useCallback(
     async (incidentType: string) => {
+      if (!mountedRef.current) {
+        return;
+      }
+
       if (soundState.current.hasPlayed) {
         logSound("PLAYBACK", "Sound already played, skipping");
         return;
@@ -136,13 +200,24 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
         setVisible(false);
         logIncident("MODAL", "Closing incident modal - no pending assignment");
       }
-      stopAllSounds();
+      if (!isAssigning && !isDenying) {
+        stopAllSounds();
+      }
     }
 
     return () => {
-      stopAllSounds();
+      if (!isAssigning && !isDenying) {
+        stopAllSounds();
+      }
     };
-  }, [pendingAssignment, visible, playIncidentSound, stopAllSounds]);
+  }, [
+    pendingAssignment,
+    visible,
+    playIncidentSound,
+    stopAllSounds,
+    isAssigning,
+    isDenying,
+  ]);
 
   const fetchAddress = useCallback(
     async (lat: number, lon: number) => {
@@ -175,6 +250,15 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
       isMounted = false;
     };
   }, [pendingAssignment, fetchAddress]);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      if (soundState.current.hasPlayed) {
+        stopAllSounds();
+      }
+    };
+  }, [stopAllSounds]);
 
   // handle respond to incident
   const handleRespond = async () => {
