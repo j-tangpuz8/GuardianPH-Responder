@@ -15,7 +15,6 @@ export const updateIncident = async (id: string, data: any): Promise<any> => {
     }
 
     return await response.json();
-    console.log("response", response);
   } catch (error: any) {
     console.error("Error updating incident: ", error);
     throw error;
@@ -24,12 +23,9 @@ export const updateIncident = async (id: string, data: any): Promise<any> => {
 
 export const assignResponder = async (
   incidentId: string,
-  responderId: string,
   coordinates: {lat: number; lon: number}
 ): Promise<any> => {
   return updateIncident(incidentId, {
-    responder: responderId,
-    isAcceptedResponder: true,
     responderCoordinates: coordinates,
   });
 };
@@ -49,7 +45,7 @@ export const requestCloseIncident = async (
   incidentId: string
 ): Promise<any> => {
   return updateIncident(incidentId, {
-    responderStatus: "close",
+    responderStatus: "rtb",
   });
 };
 

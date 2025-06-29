@@ -200,12 +200,15 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
         throw new Error("Could not get responder location");
       }
 
-      logLocation("RESPONSE", "Responder location obtained", responderLoc);
-
-      // accept assignment via WebSocket
+      // respond via socket
       await respondToAssignment(pendingAssignment._id, true);
+      // lat lng coords send to db
+      await assignResponder(pendingAssignment._id, {
+        lat: responderLoc.latitude,
+        lon: responderLoc.longitude,
+      });
 
-      // update incident in context
+      // incident context state update
       if (setCurrentIncident) {
         await setCurrentIncident({
           ...pendingAssignment,
@@ -225,7 +228,6 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
       }
 
       router.push("/(responding)");
-      logIncident("NAVIGATION", "Navigating to responding screen");
     } catch (error) {
       logError("INCIDENT_RESPONSE", "Error responding to incident", error);
     } finally {

@@ -6,9 +6,9 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
-import React from "react";
+import React, {useEffect} from "react";
 import {useCheckIn} from "@/context/checkInContext";
-import {useAuthStore} from "@/context";
+import {useAuthStore, useIncidentStore} from "@/context";
 import {useWebSocket} from "@/context/webSocketContext";
 import NewIncidentModal from "@/components/modals/new-incident-modal";
 import {clearDeniedIncidents} from "@/api/incidents/useFetchIncident";
@@ -16,6 +16,7 @@ import {useFetchResponder} from "@/api/users/useFetchResponder";
 import {useAssignmentIcon} from "@/hooks/useAssignmentIcon";
 import {useSound} from "@/utils/PlaySound";
 import {logInfo, logWarn} from "@/utils/logger";
+import {router} from "expo-router";
 
 export default function CheckInPage() {
   const {isOnline, setIsOnline} = useCheckIn();
@@ -23,6 +24,7 @@ export default function CheckInPage() {
   const {isConnected} = useWebSocket();
   const {data: responderData} = useFetchResponder(user_id || "");
   const assignmentIcon = useAssignmentIcon();
+  const {incidentState} = useIncidentStore();
 
   const medicalSound = useSound(require("@/assets/sounds/ambulance.mp3"));
   const policeSound = useSound(require("@/assets/sounds/police.mp3"));
@@ -58,6 +60,12 @@ export default function CheckInPage() {
     if (!isConnected) return "#FFA500";
     return "#8BC34A";
   };
+
+  // useEffect(() => {
+  //   if (incidentState) {
+  //     router.push("/(responding)");
+  //   }
+  // }, []);
 
   return (
     <View style={styles.container}>

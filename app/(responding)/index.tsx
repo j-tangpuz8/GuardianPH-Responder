@@ -13,7 +13,7 @@ import MapView, {Marker, PROVIDER_GOOGLE, Region} from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import {useIncidentStore} from "@/context";
 import all from "@/utils/getIcon";
-import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
+import {Ionicons} from "@expo/vector-icons";
 import {useFocusEffect} from "expo-router";
 
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
