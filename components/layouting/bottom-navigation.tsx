@@ -1,5 +1,5 @@
 import React from "react";
-import {View, Text, StyleSheet, TouchableOpacity} from "react-native";
+import {View, Text, StyleSheet, TouchableOpacity, Alert} from "react-native";
 import {FontAwesome5} from "@expo/vector-icons";
 import {useRouter} from "expo-router";
 import {useIncidentStore} from "@/context";
@@ -17,7 +17,17 @@ export default function BottomNavigation() {
   const client = useStreamVideoClient();
 
   const handleLogout = () => {
-    logout();
+    Alert.alert("Logout", "Are you sure you want to log out?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: () => logout(),
+      },
+    ]);
   };
 
   const initiateAudioCall = async () => {
