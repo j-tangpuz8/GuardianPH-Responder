@@ -13,6 +13,7 @@ import {Ionicons} from "@expo/vector-icons";
 import {useRouter} from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import {SignatureButton} from "@/components/buttons/signatureButton";
+import Toast from "react-native-toast-message";
 
 export default function PatientDetailsForm() {
   const {incidentState} = useIncidentStore();
@@ -90,6 +91,10 @@ export default function PatientDetailsForm() {
         "patientDetailsData",
         JSON.stringify(essentialData)
       );
+      Toast.show({
+        type: "success",
+        text1: "Patient Details Saved",
+      });
       router.replace("/(responding)/medical/vital-signs");
     } catch (error) {
       console.error("Error saving patient details:", error);

@@ -10,6 +10,7 @@ import React, {useState} from "react";
 import {Ionicons} from "@expo/vector-icons";
 import {useRouter} from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import Toast from "react-native-toast-message";
 
 export default function VitalSigns() {
   const [patientData, setPatientData] = useState({
@@ -38,6 +39,10 @@ export default function VitalSigns() {
         "vitalSignsData",
         JSON.stringify(patientData)
       );
+      Toast.show({
+        type: "success",
+        text1: "Vital Signs Saved",
+      });
       router.replace("/(responding)/medical/handover-vital-signs");
     } catch (error) {
       console.error("Error saving vital signs:", error);

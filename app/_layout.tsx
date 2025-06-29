@@ -15,6 +15,8 @@ import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 import {logAuth, logIncident} from "@/utils/logger";
 import {useAuthStore, useIncidentStore} from "@/context";
 import {StoreInitializer} from "@/components/StoreInitializer";
+import Toast from "react-native-toast-message";
+import {toastConfig} from "@/utils/toastConfig";
 
 const queryClient = new QueryClient();
 const STREAM_KEY = process.env.EXPO_PUBLIC_STREAM_ACCESS_KEY;
@@ -123,6 +125,7 @@ const RootLayout = () => {
           <WebSocketProvider>
             <GestureHandlerRootView style={{flex: 1}}>
               <InitialLayout />
+              <Toast config={toastConfig} />
             </GestureHandlerRootView>
           </WebSocketProvider>
         </CheckInProvider>

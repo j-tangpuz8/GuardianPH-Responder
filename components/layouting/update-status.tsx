@@ -17,6 +17,7 @@ import {
 import {useIncidentStore} from "@/context";
 import {STYLING_CONFIG} from "@/constants/styling-config";
 import FireAlarmDrawer from "./fire-alarm-drawer";
+import Toast from "react-native-toast-message";
 
 interface UpdateStatusModalProps {
   visible: boolean;
@@ -72,6 +73,7 @@ export default function UpdateStatusModal({
     if (!incidentState?._id || !setCurrentIncident) return;
 
     try {
+      // RETURN TO BASE / CLOSE
       if (status === "rtb") {
         await requestCloseIncident(incidentState._id);
         await setCurrentIncident({
@@ -79,6 +81,7 @@ export default function UpdateStatusModal({
           responderStatus: "rtb",
         });
         setCloseIncidentVisible(true);
+        // FACILITY
       } else if (status === "facility") {
         await updateResponderStatus(incidentState._id, "facility");
         setCurrentStatus(status);
@@ -86,14 +89,23 @@ export default function UpdateStatusModal({
           ...incidentState,
           responderStatus: "facility",
         });
+        Toast.show({
+          type: "success",
+          text1: "Facility Selected",
+        });
         setShowFacilities(true);
       } else {
+        // ENROUTE OR ONSCENE
         const statusMap: {[key: string]: any} = {
           onscene: "onscene",
           enroute: "enroute",
         };
         await updateResponderStatus(incidentState._id, statusMap[status]);
         setCurrentStatus(status);
+        Toast.show({
+          type: "success",
+          text1: "Successfully Updated Status to " + status,
+        });
         await setCurrentIncident({
           ...incidentState,
           responderStatus: statusMap[status],
@@ -101,6 +113,11 @@ export default function UpdateStatusModal({
       }
     } catch (error) {
       console.error("Error updating status:", error);
+      Toast.show({
+        type: "error",
+        text1: "Error updating status",
+        text2: "Please try again",
+      });
     }
   };
 

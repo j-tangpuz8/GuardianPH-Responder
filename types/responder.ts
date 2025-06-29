@@ -12,4 +12,5 @@ export interface Responder {
   city?: string;
   assignment: Assignment;
   status: Status;
+  operationCenter: string;
 }
