@@ -7,7 +7,7 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
-import React, {useEffect, useState, useRef, useMemo, useCallback} from "react";
+import React, {useState, useRef, useMemo, useCallback} from "react";
 import useLocation from "@/hooks/useLocation";
 import MapView, {Marker, PROVIDER_GOOGLE, Region} from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
@@ -62,7 +62,35 @@ const index = () => {
     incidentState?.incidentDetails?.coordinates?.lon,
   ]);
 
-  // console.log("incidentState", incidentState);
+  // facility coordinates (destination when facility is selected)
+  const facilityCoords = useMemo(() => {
+    return incidentState?.selectedFacility?.location?.coordinates?.lat &&
+      incidentState?.selectedFacility?.location?.coordinates?.lng
+      ? {
+          latitude: Number(
+            incidentState.selectedFacility.location.coordinates.lat
+          ),
+          longitude: Number(
+            incidentState.selectedFacility.location.coordinates.lng
+          ),
+        }
+      : null;
+  }, [
+    incidentState?.selectedFacility?.location?.coordinates?.lat,
+    incidentState?.selectedFacility?.location?.coordinates?.lng,
+  ]);
+
+  // Determine destination coordinates (facility if selected, otherwise incident)
+  const destinationCoords = useMemo(() => {
+    const coords = facilityCoords || incidentCoords;
+    console.log("DEBUG: Destination coords updated:", {
+      facilityCoords: !!facilityCoords,
+      incidentCoords: !!incidentCoords,
+      finalDestination: coords,
+      facilityName: incidentState?.selectedFacility?.name,
+    });
+    return coords;
+  }, [facilityCoords, incidentCoords, incidentState?.selectedFacility?.name]);
 
   useFocusEffect(
     useCallback(() => {
@@ -82,8 +110,8 @@ const index = () => {
             incidentState?.location?.lat &&
             incidentState?.location?.lon
           ) {
-            const destLat = incidentCoords?.latitude;
-            const destLon = incidentCoords?.longitude;
+            const destLat = destinationCoords?.latitude;
+            const destLon = destinationCoords?.longitude;
 
             const midLat = (locationData.latitude + destLat!) / 2;
             const midLon = (locationData.longitude + destLon!) / 2;
@@ -124,31 +152,6 @@ const index = () => {
     }, [incidentState?.location?.lat, incidentState?.location?.lon])
   );
 
-  // Update map when hospital selection changes
-  // useEffect(() => {
-  //   if (mapRef.current && responderCoords && hospitalCoords) {
-  //     mapInitialized.current = false;
-
-  //     const midLat = (responderCoords.latitude + hospitalCoords.latitude) / 2;
-  //     const midLon = (responderCoords.longitude + hospitalCoords.longitude) / 2;
-
-  //     const latDelta =
-  //       Math.abs(responderCoords.latitude - hospitalCoords.latitude) * 1.5;
-  //     const lonDelta =
-  //       Math.abs(responderCoords.longitude - hospitalCoords.longitude) * 1.5;
-
-  //     mapRef.current.animateToRegion(
-  //       {
-  //         latitude: midLat,
-  //         longitude: midLon,
-  //         latitudeDelta: Math.max(latDelta, LATITUDE_DELTA),
-  //         longitudeDelta: Math.max(lonDelta, LONGITUDE_DELTA),
-  //       },
-  //       1000
-  //     );
-  //   }
-  // }, [hospitalCoords, responderCoords]);
-
   // map loading state ui
   if (isLoading) {
     return (
@@ -160,7 +163,7 @@ const index = () => {
   }
 
   // // err handling
-  if (!responderCoords || !incidentCoords) {
+  if (!responderCoords || !destinationCoords) {
     return (
       <View style={styles.container}>
         <Text>
@@ -204,7 +207,7 @@ const index = () => {
         </Marker>
 
         {/* incident loc marker */}
-        {incidentCoords && (
+        {incidentCoords && !facilityCoords && (
           <Marker
             coordinate={incidentCoords}
             title="Incident Location"
@@ -219,25 +222,25 @@ const index = () => {
           </Marker>
         )}
 
-        {/* hospital marker */}
-        {/* {hospitalCoords && (
+        {/* facility marker */}
+        {facilityCoords && (
           <Marker
-            coordinate={hospitalCoords}
-            title={incidentState?.selectedHospital?.name || "Hospital"}
-            description={incidentState?.selectedHospital?.vicinity || ""}
+            coordinate={facilityCoords}
+            title={incidentState?.selectedFacility?.name || "Facility"}
+            description={incidentState?.selectedFacility?.description || ""}
             anchor={{x: 0.5, y: 0.5}}>
             <View style={styles.markerWrapper}>
               <Image
-                source={require("@/assets/images/hospital.png")}
+                source={all.GetFacilityIcon(incidentState?.incidentType!)}
                 style={styles.markerIcon}
               />
             </View>
           </Marker>
-        )} */}
+        )}
 
         <MapViewDirections
           origin={responderCoords}
-          destination={incidentCoords}
+          destination={destinationCoords}
           apikey={GOOGLE_MAPS_API_KEY!}
           strokeWidth={4}
           strokeColor="#1a73e8"
@@ -261,7 +264,8 @@ const index = () => {
             incidentState?.responderStatus == "facility") && (
             <View style={styles.miniInfoContainer}>
               <Text style={styles.miniInfoText}>
-                DIS: {distance} • ETA: {duration}
+                {facilityCoords ? "To Facility" : "To Incident"}: {distance} •
+                ETA: {duration}
               </Text>
             </View>
           )}

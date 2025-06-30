@@ -1,30 +1,6 @@
 import * as SecureStore from "expo-secure-store";
-import {useQuery} from "@tanstack/react-query";
-import {Incident} from "@/types/incident";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
-
-// temporary before websocket signal
-async function getIncidentForResponder(
-  responderId: string
-): Promise<Incident[]> {
-  const response = await fetch(`${API_URL}/incidents/responder/${responderId}`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch incident");
-  }
-  return response.json();
-}
-
-export const useIncidentForResponder = (responderId: string) => {
-  return useQuery({
-    queryKey: ["incident", responderId],
-    queryFn: () => getIncidentForResponder(responderId),
-    enabled: !!responderId,
-    refetchInterval: 10000,
-  });
-};
-
-/////////// denial of incidents /////////////
+/////////// denial of incidents - replace with websocket signal later /////////////
 const getDeniedIncidents = async (): Promise<string[]> => {
   try {
     const deniedIncidentsString = await SecureStore.getItemAsync(

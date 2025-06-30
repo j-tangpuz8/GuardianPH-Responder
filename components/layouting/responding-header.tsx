@@ -35,10 +35,6 @@ export default function RespondingHeader() {
     router.push("/(responding)/fire/fire-details");
   };
 
-  const handleVitalSignsPress = () => {
-    router.push("/(responding)/medical/vital-signs");
-  };
-
   const handleVitalSignsPress2 = () => {
     router.push("/(responding)/medical/handover-vital-signs");
   };
@@ -66,13 +62,23 @@ export default function RespondingHeader() {
         );
       }
     } else if (status === "facility") {
-      return (
-        <TouchableOpacity
-          style={styles.actionContainer2}
-          onPress={handleVitalSignsPress2}>
-          <Text style={styles.actionText}>PRE-HOSPITAL</Text>
-        </TouchableOpacity>
-      );
+      if (incidentType.includes("Fire")) {
+        return (
+          <TouchableOpacity
+            style={styles.actionContainer}
+            onPress={handleFireDetailsPress}>
+            <Text style={styles.actionText}>FIRE DETAILS</Text>
+          </TouchableOpacity>
+        );
+      } else if (incidentType.includes("Medical")) {
+        return (
+          <TouchableOpacity
+            style={styles.actionContainer2}
+            onPress={handleVitalSignsPress2}>
+            <Text style={styles.actionText}>PRE-HOSPITAL</Text>
+          </TouchableOpacity>
+        );
+      }
     }
 
     return null;

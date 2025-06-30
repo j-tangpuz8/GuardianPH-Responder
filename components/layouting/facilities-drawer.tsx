@@ -17,6 +17,7 @@ import {useFetchFacilitiesByAssignment} from "@/api/facilities/useFetchFacilitie
 import {useFetchResponder} from "@/api/users/useFetchResponder";
 import {STYLING_CONFIG} from "@/constants/styling-config";
 import useLocation from "@/hooks/useLocation";
+import {updateIncidentSelectedFacility} from "@/api/incidents/useUpdateIncident";
 
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -36,7 +37,7 @@ export default function FacilityDrawer({
   facilityType,
 }: FacilityDrawerProps & {facilityType: keyof typeof STYLING_CONFIG}) {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const {incidentState} = useIncidentStore();
+  const {incidentState, updateSelectedFacility} = useIncidentStore();
   const {user_id} = useAuthStore();
   const {data: responderData} = useFetchResponder(user_id || "");
   const {getAddressFromCoords} = useLocation();
@@ -264,7 +265,17 @@ export default function FacilityDrawer({
                         </View>
                       </View>
                     </View>
-                    <TouchableOpacity style={styles.goButton}>
+                    <TouchableOpacity
+                      style={styles.goButton}
+                      onPress={async () => {
+                        console.log("DEBUG: Selected facility:", facility);
+                        await updateIncidentSelectedFacility(
+                          incidentState?._id || "",
+                          facility._id || ""
+                        );
+                        updateSelectedFacility(facility);
+                        onClose();
+                      }}>
                       <Text style={styles.goButtonText}>GO</Text>
                     </TouchableOpacity>
                   </View>

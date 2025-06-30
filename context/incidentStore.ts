@@ -1,6 +1,7 @@
 import {create} from "zustand";
 import * as SecureStore from "expo-secure-store";
 import {Incident} from "@/types/incident";
+import {Facility} from "@/types/facility";
 import {useAuthStore} from "./authStore";
 
 const INCIDENT_KEY = "current-incident";
@@ -17,6 +18,7 @@ interface IncidentActions {
     longitude: number;
     address: string;
   }) => Promise<void>;
+  updateSelectedFacility: (facility: Facility) => Promise<void>;
   clearActiveIncident: () => Promise<void>;
   setInitialized: (initialized: boolean) => void;
   isIncidentAssignedToCurrentUser: (userId: string) => boolean;
@@ -99,6 +101,39 @@ export const useIncidentStore = create<IncidentState & IncidentActions>(
         set({incidentState: updatedIncident});
       } catch (error) {
         console.error("Error updating incident location:", error);
+      }
+    },
+
+    updateSelectedFacility: async (facility: Facility) => {
+      try {
+        const {user_id} = useAuthStore.getState();
+        if (!user_id) {
+          console.warn("Cannot update selected facility: No user ID found.");
+          return;
+        }
+
+        const currentIncident = get().incidentState;
+        if (!currentIncident) {
+          console.warn("No current incident to update.");
+          return;
+        }
+
+        console.log("DEBUG: Updating selected facility:", facility);
+        console.log("DEBUG: Current incident:", currentIncident._id);
+
+        const updatedIncident = {
+          ...currentIncident,
+          selectedFacility: facility,
+        };
+
+        await SecureStore.setItemAsync(
+          `${INCIDENT_KEY}-${user_id}`,
+          JSON.stringify(updatedIncident)
+        );
+        set({incidentState: updatedIncident});
+        console.log("DEBUG: Facility updated successfully");
+      } catch (error) {
+        console.error("Error updating selected facility:", error);
       }
     },
 

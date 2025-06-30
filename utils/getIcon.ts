@@ -28,6 +28,17 @@ const GetEmergencyIcon = (type: string) => {
   }
 };
 
+const GetFacilityIcon = (type: string) => {
+  switch (type) {
+    case "Medical":
+      return require("@/assets/images/hospital.png");
+    case "Fire":
+      return require("@/assets/images/hydrant.png");
+    default:
+      return require("@/assets/images/hospital.png");
+  }
+};
+
 const getIncidentTypeColor = (type: string) => {
   switch (type) {
     case "Medical":
@@ -46,5 +57,6 @@ const getIncidentTypeColor = (type: string) => {
 export default {
   GetIcon,
   GetEmergencyIcon,
+  GetFacilityIcon,
   getIncidentTypeColor,
 };

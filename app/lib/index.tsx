@@ -61,11 +61,11 @@ export default function CheckInPage() {
     return "#8BC34A";
   };
 
-  // useEffect(() => {
-  //   if (incidentState) {
-  //     router.push("/(responding)");
-  //   }
-  // }, []);
+  useEffect(() => {
+    if (incidentState) {
+      router.push("/(responding)");
+    }
+  }, []);
 
   return (
     <View style={styles.container}>
