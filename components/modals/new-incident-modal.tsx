@@ -33,11 +33,7 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
   const router = useRouter();
   const [address, setAddress] = useState<string | null>(null);
   const mountedRef = useRef(true);
-
-  const soundState = useRef({
-    hasPlayed: false,
-    currentSound: null as any,
-  });
+  const lastIncidentIdRef = useRef<string | null>(null);
 
   const getIncidentSound = useCallback(
     (incidentType: string) => {
@@ -60,12 +56,8 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
     try {
       logSound("CONTROL", "Stopping all sounds");
       const soundPromises = [];
-      if (
-        sounds?.medical &&
-        !sounds.medical.isLoading &&
-        sounds.medical.stopSound &&
-        !sounds.medical.error
-      ) {
+
+      if (sounds?.medical?.stopSound && !sounds.medical.isLoading) {
         soundPromises.push(
           sounds.medical.stopSound().catch((error: unknown) => {
             const errorMessage =
@@ -76,12 +68,7 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
           })
         );
       }
-      if (
-        sounds?.police &&
-        !sounds.police.isLoading &&
-        sounds.police.stopSound &&
-        !sounds.police.error
-      ) {
+      if (sounds?.police?.stopSound && !sounds.police.isLoading) {
         soundPromises.push(
           sounds.police.stopSound().catch((error: unknown) => {
             const errorMessage =
@@ -92,12 +79,7 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
           })
         );
       }
-      if (
-        sounds?.fire &&
-        !sounds.fire.isLoading &&
-        sounds.fire.stopSound &&
-        !sounds.fire.error
-      ) {
+      if (sounds?.fire?.stopSound && !sounds.fire.isLoading) {
         soundPromises.push(
           sounds.fire.stopSound().catch((error: unknown) => {
             const errorMessage =
@@ -108,12 +90,7 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
           })
         );
       }
-      if (
-        sounds?.general &&
-        !sounds.general.isLoading &&
-        sounds.general.stopSound &&
-        !sounds.general.error
-      ) {
+      if (sounds?.general?.stopSound && !sounds.general.isLoading) {
         soundPromises.push(
           sounds.general.stopSound().catch((error: unknown) => {
             const errorMessage =
@@ -129,8 +106,6 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
         await Promise.allSettled(soundPromises);
       }
 
-      soundState.current.hasPlayed = false;
-      soundState.current.currentSound = null;
       logSound("CONTROL", "All sounds stopped successfully");
     } catch (error) {
       const errorMessage =
@@ -142,35 +117,48 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
   }, [sounds]);
 
   const playIncidentSound = useCallback(
-    async (incidentType: string) => {
+    async (incidentType: string, incidentId: string) => {
       if (!mountedRef.current) {
-        return;
-      }
-
-      if (soundState.current.hasPlayed) {
-        logSound("PLAYBACK", "Sound already played, skipping");
         return;
       }
 
       try {
         const sound = getIncidentSound(incidentType);
-        if (!sound || sound.isLoading) {
-          logSound("PLAYBACK", "Sound not available or loading", {
+        if (!sound) {
+          logSound("PLAYBACK", "No sound available for incident type", {
             incidentType,
-            hasSound: !!sound,
-            isLoading: sound?.isLoading,
           });
           return;
         }
 
-        logSound("PLAYBACK", "Playing incident sound", {incidentType});
+        // check if sound is ready
+        if (sound.isLoading || !sound.isReady) {
+          logSound("PLAYBACK", "Sound not ready, waiting...", {
+            incidentType,
+            isLoading: sound.isLoading,
+            isReady: sound.isReady,
+          });
+
+          setTimeout(() => {
+            if (sound.isReady && !sound.isLoading) {
+              playIncidentSound(incidentType, incidentId);
+            }
+          }, 500);
+          return;
+        }
+
+        logSound("PLAYBACK", "Playing incident sound", {
+          incidentType,
+          incidentId,
+        });
+
         await stopAllSounds();
+        await new Promise((resolve) => setTimeout(resolve, 100));
         await sound.playSound();
 
-        soundState.current.hasPlayed = true;
-        soundState.current.currentSound = sound;
         logSound("PLAYBACK", "Incident sound played successfully", {
           incidentType,
+          incidentId,
         });
       } catch (error) {
         logError("SOUND_PLAYBACK", "Error playing sound", error);
@@ -182,22 +170,28 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
   // handle WebSocket requests
   useEffect(() => {
     if (pendingAssignment) {
+      const currentIncidentId = pendingAssignment._id;
+
       logIncident("ASSIGNMENT", "New assignment request received", {
-        incidentId: pendingAssignment._id,
+        incidentId: currentIncidentId,
         incidentType: pendingAssignment.incidentType,
       });
 
-      if (!visible) {
-        setVisible(true);
-        logIncident("MODAL", "Opening incident modal for new assignment");
-      }
+      // play sound for new incidents (different id)
+      if (lastIncidentIdRef.current !== currentIncidentId) {
+        lastIncidentIdRef.current = currentIncidentId;
 
-      if (!soundState.current.hasPlayed) {
-        playIncidentSound(pendingAssignment.incidentType);
+        if (!visible) {
+          setVisible(true);
+          logIncident("MODAL", "Opening incident modal for new assignment");
+        }
+
+        playIncidentSound(pendingAssignment.incidentType, currentIncidentId);
       }
     } else {
       if (visible) {
         setVisible(false);
+        lastIncidentIdRef.current = null;
         logIncident("MODAL", "Closing incident modal - no pending assignment");
       }
       if (!isAssigning && !isDenying) {
@@ -254,11 +248,8 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
   useEffect(() => {
     return () => {
       mountedRef.current = false;
-      if (soundState.current.hasPlayed) {
-        stopAllSounds();
-      }
     };
-  }, [stopAllSounds]);
+  }, []);
 
   // handle respond to incident
   const handleRespond = async () => {

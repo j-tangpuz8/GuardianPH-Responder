@@ -44,7 +44,7 @@ export default function CheckInPage() {
     setIsOnline(newStatus);
   };
 
-  // Determine status message based on online status and WebSocket connection
+  // status msg based on online status and WebSocket connection
   const getStatusMessage = () => {
     if (!isOnline) {
       return "Please Check In to Receive Dispatch";
