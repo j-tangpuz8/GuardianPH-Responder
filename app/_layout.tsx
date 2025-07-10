@@ -1,29 +1,29 @@
 import "react-native-gesture-handler";
-import {Slot, useSegments} from "expo-router";
-import {GestureHandlerRootView} from "react-native-gesture-handler";
-import React, {useEffect, useState} from "react";
-import {useRouter} from "expo-router";
+import { Slot, useSegments } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import {
   StreamVideoClient,
   StreamVideo,
   User,
 } from "@stream-io/video-react-native-sdk";
-import {OverlayProvider} from "stream-chat-expo";
-import {CheckInProvider} from "@/context/checkInContext";
-import {WebSocketProvider} from "@/context/webSocketContext";
-import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
-import {logAuth, logIncident} from "@/utils/logger";
-import {useAuthStore, useIncidentStore} from "@/context";
-import {StoreInitializer} from "@/components/StoreInitializer";
+import { OverlayProvider } from "stream-chat-expo";
+import { CheckInProvider } from "@/context/CheckInContext";
+import { WebSocketProvider } from "@/context/webSocketContext";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { logAuth, logIncident } from "@/utils/logger";
+import { useAuthStore, useIncidentStore } from "@/context";
+import { StoreInitializer } from "@/components/StoreInitializer";
 import Toast from "react-native-toast-message";
-import {toastConfig} from "@/utils/toastConfig";
+import { toastConfig } from "@/utils/toastConfig";
 
 const queryClient = new QueryClient();
 const STREAM_KEY = process.env.EXPO_PUBLIC_STREAM_ACCESS_KEY;
 
 const InitialLayout = () => {
-  const {token, authenticated, user_id, initialized} = useAuthStore();
-  const {incidentState, isIncidentAssignedToCurrentUser} = useIncidentStore();
+  const { token, authenticated, user_id, initialized } = useAuthStore();
+  const { incidentState, isIncidentAssignedToCurrentUser } = useIncidentStore();
   const segments = useSegments();
   const router = useRouter();
   const [client, setClient] = useState<StreamVideoClient | null>(null);
@@ -89,7 +89,7 @@ const InitialLayout = () => {
   useEffect(() => {
     if (authenticated && token && user_id) {
       logAuth("STREAM", "Creating Stream video client");
-      const user: User = {id: user_id};
+      const user: User = { id: user_id };
       try {
         const streamClient = StreamVideoClient.getOrCreateInstance({
           apiKey: STREAM_KEY!,
@@ -123,7 +123,7 @@ const RootLayout = () => {
       <StoreInitializer>
         <CheckInProvider>
           <WebSocketProvider>
-            <GestureHandlerRootView style={{flex: 1}}>
+            <GestureHandlerRootView style={{ flex: 1 }}>
               <InitialLayout />
               <Toast config={toastConfig} />
             </GestureHandlerRootView>

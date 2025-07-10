@@ -7,24 +7,30 @@ import {
   TouchableOpacity,
   Animated,
 } from "react-native";
-import React, {useState, useEffect, useRef, useMemo, useCallback} from "react";
-import {useIncidentStore} from "@/context";
-import {useAuthStore} from "@/context";
-import {useWebSocket} from "@/context/webSocketContext";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
+import { useIncidentStore } from "@/context";
+import { useAuthStore } from "@/context";
+import { useWebSocket } from "@/context/webSocketContext";
 import all from "@/utils/getIcon";
-import {useShakeAnimation} from "@/hooks/useShakeAnimation";
+import { useShakeAnimation } from "@/hooks/useShakeAnimation";
 import DenyIncidentModal from "./deny-incident-modal";
-import {useRouter} from "expo-router";
-import {assignResponder} from "@/api/incidents/useUpdateIncident";
-import {denyIncident} from "@/api/incidents/useFetchIncident";
+import { useRouter } from "expo-router";
+import { assignResponder } from "@/api/incidents/useUpdateIncident";
+import { denyIncident } from "@/api/incidents/useFetchIncident";
 import useLocation from "@/hooks/useLocation";
-import {logIncident, logSound, logLocation, logError} from "@/utils/logger";
+import { logIncident, logSound, logLocation, logError } from "@/utils/logger";
 
-export default function NewIncidentModal({sounds}: {sounds: any}) {
-  const {setCurrentIncident} = useIncidentStore();
-  const {user_id} = useAuthStore();
-  const {getUserLocation, getAddressFromCoords} = useLocation();
-  const {pendingAssignment, respondToAssignment} = useWebSocket();
+export default function NewIncidentModal({ sounds }: { sounds: any }) {
+  const { setCurrentIncident } = useIncidentStore();
+  const { user_id } = useAuthStore();
+  const { getUserLocation, getAddressFromCoords } = useLocation();
+  const { pendingAssignment, respondToAssignment } = useWebSocket();
   const [visible, setVisible] = useState(false);
   const shakeStyle = useShakeAnimation(visible);
   const [showDenyModal, setShowDenyModal] = useState(false);
@@ -222,7 +228,7 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
         });
         const address = await getAddressFromCoords(lat, lon);
         setAddress(address);
-        logLocation("GEOCODING", "Address fetched successfully", {address});
+        logLocation("GEOCODING", "Address fetched successfully", { address });
       } catch (error) {
         logError("LOCATION_GEOCODING", "Error fetching address", error);
         setAddress("Location unavailable");
@@ -231,10 +237,12 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
     [getAddressFromCoords]
   );
 
+  console.log("Visible.... ", visible);
+
   useEffect(() => {
     let isMounted = true;
     if (pendingAssignment?.incidentDetails?.coordinates) {
-      const {lat, lon} = pendingAssignment.incidentDetails.coordinates;
+      const { lat, lon } = pendingAssignment.incidentDetails.coordinates;
       fetchAddress(lat, lon).then(() => {
         if (!isMounted) return;
       });
@@ -343,9 +351,11 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
   return (
     <>
       {!isDenying && visible && pendingAssignment && (
-        <Modal transparent visible={visible} animationType="fade">
+        // <Modal transparent visible={visible} animationType="fade">
+        // IOS Testing
+        <Modal transparent visible={visible} presentationStyle="overFullScreen">
           <View style={styles.modalContainer}>
-            <Animated.View style={[styles.modalContent, shakeStyle]}>
+            <View style={[styles.modalContent]}>
               <View style={styles.header}>
                 <Text style={styles.headerText}>NEW INCIDENT</Text>
               </View>
@@ -357,7 +367,8 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
                       pendingAssignment?.incidentType
                     ),
                   },
-                ]}>
+                ]}
+              >
                 <Image
                   source={all.GetEmergencyIcon(pendingAssignment?.incidentType)}
                   style={styles.icon}
@@ -369,7 +380,8 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
                   <Text
                     style={styles.incidentLocation}
                     numberOfLines={2}
-                    ellipsizeMode="tail">
+                    ellipsizeMode="tail"
+                  >
                     {address || "Location unavailable"}
                   </Text>
                 </View>
@@ -378,18 +390,20 @@ export default function NewIncidentModal({sounds}: {sounds: any}) {
                 <TouchableOpacity
                   style={styles.respondButton}
                   onPress={handleRespond}
-                  disabled={isAssigning}>
+                  disabled={isAssigning}
+                >
                   <Text style={styles.buttonText}>
                     {isAssigning ? "Responding..." : "Respond"}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.denyButton}
-                  onPress={handleDeny}>
+                  onPress={handleDeny}
+                >
                   <Text style={styles.buttonText}>Deny</Text>
                 </TouchableOpacity>
               </View>
-            </Animated.View>
+            </View>
           </View>
         </Modal>
       )}

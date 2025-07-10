@@ -6,7 +6,7 @@ import React, {
   useCallback,
 } from "react";
 import * as SecureStore from "expo-secure-store";
-import {useAuthStore} from "@/context";
+import { useAuthStore } from "@/context";
 
 type CheckInContextType = {
   isOnline: boolean;
@@ -15,8 +15,8 @@ type CheckInContextType = {
 
 const CheckInContext = createContext<CheckInContextType | undefined>(undefined);
 
-export const CheckInProvider = ({children}: any) => {
-  const {user_id} = useAuthStore();
+export const CheckInProvider = ({ children }: any) => {
+  const { user_id } = useAuthStore();
   const [isOnline, setIsOnlineState] = useState(false);
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export const CheckInProvider = ({children}: any) => {
   );
 
   return (
-    <CheckInContext.Provider value={{isOnline, setIsOnline}}>
+    <CheckInContext.Provider value={{ isOnline, setIsOnline }}>
       {children}
     </CheckInContext.Provider>
   );

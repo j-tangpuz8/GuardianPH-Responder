@@ -6,13 +6,13 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import {io, Socket} from "socket.io-client";
-import {useAuthStore} from "@/context";
-import {useCheckIn} from "@/context/checkInContext";
-import {logWebSocket, logError, logInfo, logWarn} from "@/utils/logger";
-import {Incident} from "@/types/incident";
-import {sendAssignmentResponse} from "@/api/websocket/websocketApi";
-import {CONFIG} from "@/constants/config";
+import { io, Socket } from "socket.io-client";
+import { useAuthStore } from "@/context";
+import { useCheckIn } from "@/context/CheckInContext";
+import { logWebSocket, logError, logInfo, logWarn } from "@/utils/logger";
+import { Incident } from "@/types/incident";
+import { sendAssignmentResponse } from "@/api/websocket/websocketApi";
+import { CONFIG } from "@/constants/config";
 
 interface WebSocketContextType {
   socket: Socket | null;
@@ -26,9 +26,9 @@ const WebSocketContext = createContext<WebSocketContextType | undefined>(
   undefined
 );
 
-export const WebSocketProvider = ({children}: any) => {
-  const {token, user_id} = useAuthStore();
-  const {isOnline} = useCheckIn();
+export const WebSocketProvider = ({ children }: any) => {
+  const { token, user_id } = useAuthStore();
+  const { isOnline } = useCheckIn();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [pendingAssignment, setPendingAssignment] = useState<Incident | null>(
@@ -80,7 +80,7 @@ export const WebSocketProvider = ({children}: any) => {
       });
 
       newSocket.on("disconnect", (reason) => {
-        logWebSocket("CONNECTION", "Socket disconnected", {reason});
+        logWebSocket("CONNECTION", "Socket disconnected", { reason });
         setIsConnected(false);
         setPendingAssignment(null);
         stopHeartbeat();
@@ -93,7 +93,7 @@ export const WebSocketProvider = ({children}: any) => {
       });
 
       newSocket.on("reconnect", (attemptNumber) => {
-        logWebSocket("CONNECTION", "Socket reconnected", {attemptNumber});
+        logWebSocket("CONNECTION", "Socket reconnected", { attemptNumber });
         setIsConnected(true);
         reconnectAttemptsRef.current = 0;
         startHeartbeat(newSocket);

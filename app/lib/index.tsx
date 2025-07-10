@@ -6,25 +6,28 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
-import React, {useEffect} from "react";
-import {useCheckIn} from "@/context/checkInContext";
-import {useAuthStore, useIncidentStore} from "@/context";
-import {useWebSocket} from "@/context/webSocketContext";
+import React, { useEffect, useState } from "react";
+import { useCheckIn } from "@/context/CheckInContext";
+import { useAuthStore, useIncidentStore } from "@/context";
+import { useWebSocket } from "@/context/webSocketContext";
 import NewIncidentModal from "@/components/modals/new-incident-modal";
-import {clearDeniedIncidents} from "@/api/incidents/useFetchIncident";
-import {useFetchResponder} from "@/api/users/useFetchResponder";
-import {useAssignmentIcon} from "@/hooks/useAssignmentIcon";
-import {useSound} from "@/utils/PlaySound";
-import {logInfo, logWarn} from "@/utils/logger";
-import {router} from "expo-router";
+import { clearDeniedIncidents } from "@/api/incidents/useFetchIncident";
+import { useFetchResponder } from "@/api/users/useFetchResponder";
+import { useAssignmentIcon } from "@/hooks/useAssignmentIcon";
+import { useSound } from "@/utils/PlaySound";
+import { logInfo, logWarn } from "@/utils/logger";
+import { router } from "expo-router";
 
 export default function CheckInPage() {
-  const {isOnline, setIsOnline} = useCheckIn();
-  const {user_id, logout} = useAuthStore();
-  const {isConnected} = useWebSocket();
-  const {data: responderData} = useFetchResponder(user_id || "");
+  const { isOnline, setIsOnline } = useCheckIn();
+  const { user_id, logout } = useAuthStore();
+  const { isConnected } = useWebSocket();
+  const { data: responderData } = useFetchResponder(user_id || "");
   const assignmentIcon = useAssignmentIcon();
-  const {incidentState} = useIncidentStore();
+  const { incidentState } = useIncidentStore();
+  const [visible, setVisible] = useState(true);
+
+  const { pendingAssignment } = useWebSocket();
 
   const medicalSound = useSound(require("@/assets/sounds/ambulance.mp3"));
   const policeSound = useSound(require("@/assets/sounds/police.mp3"));
@@ -67,6 +70,13 @@ export default function CheckInPage() {
     }
   }, []);
 
+  // handle WebSocket requests
+  useEffect(() => {
+    if (pendingAssignment) {
+      setVisible(false);
+    }
+  }, [pendingAssignment, visible]);
+
   return (
     <View style={styles.container}>
       {isOnline && (
@@ -81,7 +91,7 @@ export default function CheckInPage() {
       )}
       {/* <MapView style={styles.map} provider={PROVIDER_GOOGLE} /> */}
 
-      <Modal transparent visible={true} animationType="fade">
+      <Modal transparent visible={visible} animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View
@@ -90,10 +100,11 @@ export default function CheckInPage() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 10,
-              }}>
+              }}
+            >
               <Image
                 source={assignmentIcon}
-                style={{width: 100, height: 50}}
+                style={{ width: 100, height: 50 }}
                 resizeMode="contain"
               />
               <Text style={styles.title}>
@@ -102,7 +113,7 @@ export default function CheckInPage() {
             </View>
             <Text style={styles.subtitle}>Bantay Mandaue Command Center</Text>
             <View style={styles.statusContainer}>
-              <Text style={[styles.statusText, {color: getStatusColor()}]}>
+              <Text style={[styles.statusText, { color: getStatusColor() }]}>
                 {isOnline ? "ONLINE" : "OFFLINE"}
               </Text>
               <Text style={styles.message}>{getStatusMessage()}</Text>
@@ -110,9 +121,10 @@ export default function CheckInPage() {
             <TouchableOpacity
               style={[
                 styles.checkInButton,
-                {backgroundColor: isOnline ? "#FF6B6B" : "#8BC34A"},
+                { backgroundColor: isOnline ? "#FF6B6B" : "#8BC34A" },
               ]}
-              onPress={handleClick}>
+              onPress={handleClick}
+            >
               <Text style={styles.buttonText}>
                 {isOnline ? "Check-Out" : "Check-In"}
               </Text>
@@ -124,7 +136,8 @@ export default function CheckInPage() {
                   onPress={() => {
                     logInfo("TESTING", "Clearing denied incidents list");
                     clearDeniedIncidents();
-                  }}>
+                  }}
+                >
                   <Text style={styles.clearButtonWarning}>
                     *For testing purposes only
                   </Text>
@@ -137,7 +150,8 @@ export default function CheckInPage() {
                   onPress={() => {
                     logInfo("AUTH", "User logging out");
                     logout();
-                  }}>
+                  }}
+                >
                   <Text style={styles.clearButtonText}>LOGOUT</Text>
                 </TouchableOpacity>
               </>

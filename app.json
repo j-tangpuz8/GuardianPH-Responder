@@ -15,7 +15,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bitcode": false
+      "bitcode": false,
+      "bundleIdentifier": "com.jolotangpuz.GuardianResponder",
+      "config": {
+        "googleMapsApiKey": "AIzaSyAJjCD4TVrZk6u-OxFvk00OYpBqSMB_RVo"
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "navigationBarBackgroundColor": "#1B4965",
@@ -26,7 +33,7 @@
       },
       "config": {
         "googleMaps": {
-          "apiKey": "process.env.GOOGLE_MAPS_API_KEY"
+          "apiKey": "AIzaSyAJjCD4TVrZk6u-OxFvk00OYpBqSMB_RVo"
         }
       },
       "adaptiveIcon": {
@@ -74,7 +81,8 @@
           "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location.",
           "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location while the app is in use.",
           "isAndroidBackgroundLocationEnabled": true,
-          "isAndroidForegroundServiceEnabled": true
+          "isAndroidForegroundServiceEnabled": true,
+          "isIosBackgroundLocationEnabled": true
         }
       ],
       [
@@ -97,7 +105,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "f2557abf-e0d4-40ac-8076-7f77fcdf7177"
+        "projectId": "e6d06161-a847-4a8d-a72f-f9d60730925b"
       }
     }
   }
