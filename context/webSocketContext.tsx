@@ -6,13 +6,13 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import { io, Socket } from "socket.io-client";
-import { useAuthStore } from "@/context";
-import { useCheckIn } from "@/context/CheckInContext";
-import { logWebSocket, logError, logInfo, logWarn } from "@/utils/logger";
-import { Incident } from "@/types/incident";
-import { sendAssignmentResponse } from "@/api/websocket/websocketApi";
-import { CONFIG } from "@/constants/config";
+import {io, Socket} from "socket.io-client";
+import {useAuthStore} from "@/context";
+import {useCheckIn} from "@/context/CheckInContext";
+import {logWebSocket, logError, logInfo, logWarn} from "@/utils/logger";
+import {Incident} from "@/types/incident";
+import {sendAssignmentResponse} from "@/api/websocket/websocketApi";
+import {CONFIG} from "@/constants/config";
 
 interface WebSocketContextType {
   socket: Socket | null;
@@ -20,15 +20,16 @@ interface WebSocketContextType {
   pendingAssignment: Incident | null;
   respondToAssignment: (incidentId: string, accepted: boolean) => Promise<void>;
   clearPendingAssignment: () => void;
+  leaveIncidentRoom: (incidentId: string) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(
   undefined
 );
 
-export const WebSocketProvider = ({ children }: any) => {
-  const { token, user_id } = useAuthStore();
-  const { isOnline } = useCheckIn();
+export const WebSocketProvider = ({children}: any) => {
+  const {token, user_id} = useAuthStore();
+  const {isOnline} = useCheckIn();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [pendingAssignment, setPendingAssignment] = useState<Incident | null>(
@@ -77,13 +78,19 @@ export const WebSocketProvider = ({ children }: any) => {
         setIsConnected(true);
         reconnectAttemptsRef.current = 0;
         startHeartbeat(newSocket);
+        if (user_id) {
+          newSocket.emit("joinResponderRoom", {responderId: user_id});
+        }
       });
 
       newSocket.on("disconnect", (reason) => {
-        logWebSocket("CONNECTION", "Socket disconnected", { reason });
+        logWebSocket("CONNECTION", "Socket disconnected", {reason});
         setIsConnected(false);
         setPendingAssignment(null);
         stopHeartbeat();
+        if (user_id) {
+          newSocket.emit("leaveResponderRoom", {responderId: user_id});
+        }
       });
 
       newSocket.on("connect_error", (error) => {
@@ -93,7 +100,7 @@ export const WebSocketProvider = ({ children }: any) => {
       });
 
       newSocket.on("reconnect", (attemptNumber) => {
-        logWebSocket("CONNECTION", "Socket reconnected", { attemptNumber });
+        logWebSocket("CONNECTION", "Socket reconnected", {attemptNumber});
         setIsConnected(true);
         reconnectAttemptsRef.current = 0;
         startHeartbeat(newSocket);
@@ -173,6 +180,16 @@ export const WebSocketProvider = ({ children }: any) => {
     }
   }, []);
 
+  const leaveIncidentRoom = useCallback(
+    (incidentId: string) => {
+      if (socket && incidentId) {
+        socket.emit("leaveIncidentRoom", {incidentId});
+        logWebSocket("ROOM", "Left incident room", {incidentId});
+      }
+    },
+    [socket]
+  );
+
   // respond to assignment
   const respondToAssignment = useCallback(
     async (incidentId: string, accepted: boolean) => {
@@ -201,6 +218,11 @@ export const WebSocketProvider = ({ children }: any) => {
           dispatcherId: pendingAssignment?.dispatcherId || "unknown",
           accepted,
         });
+
+        if (accepted && incidentId) {
+          socket.emit("joinIncidentRoom", {incidentId});
+          logWebSocket("ROOM", "Joined incident room", {incidentId});
+        }
 
         setPendingAssignment(null);
 
@@ -239,6 +261,9 @@ export const WebSocketProvider = ({ children }: any) => {
           "CONNECTION",
           "Cleaning up socket connection - user offline or logged out"
         );
+        if (user_id) {
+          socket.emit("leaveResponderRoom", {responderId: user_id});
+        }
         stopHeartbeat();
         socket.disconnect();
         setSocket(null);
@@ -275,6 +300,7 @@ export const WebSocketProvider = ({ children }: any) => {
     pendingAssignment,
     respondToAssignment,
     clearPendingAssignment,
+    leaveIncidentRoom,
   };
 
   return (
