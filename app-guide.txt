@@ -1,0 +1,46 @@
+FOLDERS:
+    /api
+        -> tanstack query hooks (API calls to server in order to fetch, create, update, and delete resources)
+    
+    /app
+        -> application screens which are separated via auth screens and actual application screens
+            -> (auth) folder contains the auth pages such as login and register
+            -> /(responding) folder contains all screens when responder is assigned an active incident
+            -> /lib folder has the check in page for responder
+    
+    /assets
+        -> contains sounds, images, and fonts
+    
+    /components
+        -> individual components exported to the screens
+            -> /components/buttons folder has buttons
+            -> /components/calls folder has components for stream calls
+            -> /components/layouting folder has layout components like headers, incident status bars, drawers, etc.
+            -> /components/modals folder has modals that popup when responding to an incident
+    
+    /context
+        -> global state management files for incidents, auth, settings, and sockets. 
+        -> uses zustand package
+    
+    /hooks
+        -> hooks to fetch further information in /landing/(room) folder (getLocation, expo notifications, firebase notifs, etc.)
+    
+    /types
+        -> typeScript types used all over the app for each entity (dispatcher, volunteer, incidents,notifications, etc)
+    
+    /utils
+        -> utility functions like formatting dates, play sounds, etc.
+
+
+EXPO EAS BUILDS
+    development build 
+        -> eas build --profile development --platform ios/android
+        -> will react to changes in the code editor
+        -> hot reload
+    
+    preview build
+        -> eas build --profile preview --platform ios/android
+        -> similar to testflight. Like a test prudction app that won't react to your code changes.
+    
+    production build
+        -> alam mo na.
