@@ -11,7 +11,6 @@ import { useAuthStore } from "@/context";
 import { useCheckIn } from "@/context/CheckInContext";
 import { logWebSocket, logError, logInfo, logWarn } from "@/utils/logger";
 import { Incident } from "@/types/incident";
-import { sendAssignmentResponse } from "@/api/websocket/websocketApi";
 import { CONFIG } from "@/constants/config";
 
 interface WebSocketContextType {
@@ -20,7 +19,6 @@ interface WebSocketContextType {
   pendingAssignment: Incident | null;
   respondToAssignment: (incidentId: string, accepted: boolean) => Promise<void>;
   clearPendingAssignment: () => void;
-  leaveIncidentRoom: (incidentId: string) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(
@@ -28,58 +26,43 @@ const WebSocketContext = createContext<WebSocketContextType | undefined>(
 );
 
 export const WebSocketProvider = ({ children }: any) => {
-  const { token, user_id } = useAuthStore();
+  const { token } = useAuthStore();
   const { isOnline } = useCheckIn();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [pendingAssignment, setPendingAssignment] = useState<Incident | null>(
     null
   );
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttemptsRef = useRef(0);
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const initializeSocket = useCallback(() => {
-    if (!user_id || !isOnline) {
+    if (!token || !isOnline) {
       logWebSocket(
         "CONNECTION",
-        "Cannot initialize socket - missing user_id or not online",
-        {
-          userId: user_id,
-          isOnline,
-        }
+        "Cannot initialize socket - missing token or not online",
+        { hasToken: !!token, isOnline }
       );
       return;
     }
 
     try {
-      logWebSocket("CONNECTION", "Initializing socket connection", {
-        url: CONFIG.SOCKET_URL,
-      });
+      logWebSocket("CONNECTION", "Initializing socket connection...");
 
       const newSocket = io(CONFIG.SOCKET_URL, {
         auth: {
-          userId: user_id,
-          userType: "responder",
+          token: token,
         },
-        transports: ["websocket", "polling"],
+        transports: ["websocket"],
         reconnection: true,
-        reconnectionAttempts: CONFIG.WEBSOCKET.RECONNECT_ATTEMPTS,
-        reconnectionDelay: CONFIG.WEBSOCKET.RECONNECT_DELAY,
-        reconnectionDelayMax: CONFIG.WEBSOCKET.RECONNECT_DELAY_MAX,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
       });
 
       newSocket.on("connect", () => {
-        logWebSocket("CONNECTION", "Socket connected successfully", {
-          socketId: newSocket.id,
-          userId: user_id,
-        });
+        logWebSocket("CONNECTION", "Socket connected successfully", { socketId: newSocket.id });
         setIsConnected(true);
-        reconnectAttemptsRef.current = 0;
         startHeartbeat(newSocket);
-        if (user_id) {
-          newSocket.emit("joinResponderRoom", { responderId: user_id });
-        }
       });
 
       newSocket.on("disconnect", (reason) => {
@@ -87,39 +70,10 @@ export const WebSocketProvider = ({ children }: any) => {
         setIsConnected(false);
         setPendingAssignment(null);
         stopHeartbeat();
-        if (user_id) {
-          newSocket.emit("leaveResponderRoom", { responderId: user_id });
-        }
       });
 
       newSocket.on("connect_error", (error) => {
         logError("WEBSOCKET_CONNECTION", "Socket connection error", error);
-        setIsConnected(false);
-        stopHeartbeat();
-      });
-
-      newSocket.on("reconnect", (attemptNumber) => {
-        logWebSocket("CONNECTION", "Socket reconnected", { attemptNumber });
-        setIsConnected(true);
-        reconnectAttemptsRef.current = 0;
-        startHeartbeat(newSocket);
-      });
-
-      newSocket.on("reconnect_attempt", (attemptNumber) => {
-        logWarn("WEBSOCKET_CONNECTION", "Socket reconnection attempt", {
-          attemptNumber,
-        });
-        reconnectAttemptsRef.current = attemptNumber;
-      });
-
-      newSocket.on("reconnect_failed", () => {
-        logError(
-          "WEBSOCKET_CONNECTION",
-          "Socket reconnection failed after max attempts",
-          {
-            maxAttempts: CONFIG.WEBSOCKET.RECONNECT_ATTEMPTS,
-          }
-        );
         setIsConnected(false);
         stopHeartbeat();
       });
@@ -147,151 +101,67 @@ export const WebSocketProvider = ({ children }: any) => {
     } catch (error) {
       logError("WEBSOCKET_INIT", "Failed to initialize socket", error);
     }
-  }, [user_id, isOnline]);
+  }, [token, isOnline]);
 
-  const startHeartbeat = useCallback(
-    (socketInstance: Socket) => {
-      stopHeartbeat();
-
-      heartbeatIntervalRef.current = setInterval(async () => {
-        if (socketInstance && socketInstance.connected && user_id) {
-          try {
-            socketInstance.emit("ping", {
-              responderId: user_id,
-              timestamp: Date.now(),
-            });
-          } catch (error) {
-            logWarn("WEBSOCKET_HEARTBEAT", "Heartbeat failed", error);
-          }
-        }
-      }, CONFIG.WEBSOCKET.HEARTBEAT_INTERVAL);
-
-      logWebSocket("HEARTBEAT", "Heartbeat started");
-    },
-    [user_id]
-  );
+  const startHeartbeat = useCallback((socketInstance: Socket) => {
+    stopHeartbeat();
+    heartbeatIntervalRef.current = setInterval(() => {
+      if (socketInstance && socketInstance.connected) {
+        socketInstance.emit("ping", { timestamp: Date.now() });
+      }
+    }, CONFIG.WEBSOCKET.HEARTBEAT_INTERVAL);
+  }, []);
 
   const stopHeartbeat = useCallback(() => {
     if (heartbeatIntervalRef.current) {
       clearInterval(heartbeatIntervalRef.current);
       heartbeatIntervalRef.current = null;
-      logWebSocket("HEARTBEAT", "Heartbeat stopped");
     }
   }, []);
 
-  const leaveIncidentRoom = useCallback(
-    (incidentId: string) => {
-      if (socket && incidentId) {
-        socket.emit("leaveIncidentRoom", { incidentId });
-        logWebSocket("ROOM", "Left incident room", { incidentId });
+  const respondToAssignment = useCallback(
+    async (incidentId: string, accepted: boolean) => {
+      if (!socket) {
+        throw new Error("Socket not available");
+      }
+      try {
+        logWebSocket("ASSIGNMENT", "Responding to assignment", { incidentId, accepted });
+
+        socket.emit("respondToAssignment", {
+          incidentId,
+          accepted,
+        });
+
+        setPendingAssignment(null);
+        logInfo("WEBSOCKET_ASSIGNMENT", "Assignment response sent successfully");
+      } catch (error) {
+        logError("WEBSOCKET_RESPONSE", "Failed to respond to assignment", error);
+        throw error;
       }
     },
     [socket]
   );
 
-  // respond to assignment
-  const respondToAssignment = useCallback(
-    async (incidentId: string, accepted: boolean) => {
-      if (!socket || !user_id) {
-        logError(
-          "WEBSOCKET_RESPONSE",
-          "Cannot respond to assignment - socket or user not available",
-          {
-            hasSocket: !!socket,
-            hasUserId: !!user_id,
-          }
-        );
-        throw new Error("Socket or user not available");
-      }
-
-      try {
-        logWebSocket("ASSIGNMENT", "Responding to assignment", {
-          incidentId,
-          accepted,
-          responderId: user_id,
-        });
-
-        await sendAssignmentResponse(socket, {
-          incidentId,
-          responderId: user_id,
-          dispatcherId: pendingAssignment?.dispatcherId || "unknown",
-          accepted,
-        });
-
-        if (accepted && incidentId) {
-          socket.emit("joinIncidentRoom", { incidentId });
-          logWebSocket("ROOM", "Joined incident room", { incidentId });
-        }
-
-        setPendingAssignment(null);
-
-        logInfo(
-          "WEBSOCKET_ASSIGNMENT",
-          "Assignment response sent successfully",
-          {
-            incidentId,
-            accepted,
-          }
-        );
-      } catch (error) {
-        logError(
-          "WEBSOCKET_RESPONSE",
-          "Failed to respond to assignment",
-          error
-        );
-        throw error;
-      }
-    },
-    [socket, user_id, pendingAssignment]
-  );
-
-  // clear pending assignment
   const clearPendingAssignment = useCallback(() => {
     logWebSocket("ASSIGNMENT", "Clearing pending assignment");
     setPendingAssignment(null);
   }, []);
 
   useEffect(() => {
-    if (user_id && isOnline) {
+    if (token && isOnline) {
       initializeSocket();
-    } else {
-      if (socket) {
-        logWebSocket(
-          "CONNECTION",
-          "Cleaning up socket connection - user offline or logged out"
-        );
-        if (user_id) {
-          socket.emit("leaveResponderRoom", { responderId: user_id });
-        }
-        stopHeartbeat();
-        socket.disconnect();
-        setSocket(null);
-        setIsConnected(false);
-        setPendingAssignment(null);
-      }
+    } else if (socket) {
+      logWebSocket("CONNECTION", "Cleaning up socket - user offline or logged out");
+      socket.disconnect();
+      setSocket(null);
     }
 
     return () => {
       if (socket) {
-        logWebSocket("CONNECTION", "Cleaning up socket connection on unmount");
-        stopHeartbeat();
-        socket.disconnect();
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-    };
-  }, [user_id, isOnline, initializeSocket, stopHeartbeat]);
-
-  useEffect(() => {
-    return () => {
-      if (socket) {
-        logWebSocket("CONNECTION", "Disconnecting socket on component unmount");
-        stopHeartbeat();
         socket.disconnect();
       }
     };
-  }, [socket, stopHeartbeat]);
+  }, [token, isOnline, initializeSocket]);
 
   const value: WebSocketContextType = {
     socket,
@@ -299,7 +169,6 @@ export const WebSocketProvider = ({ children }: any) => {
     pendingAssignment,
     respondToAssignment,
     clearPendingAssignment,
-    leaveIncidentRoom,
   };
 
   return (
