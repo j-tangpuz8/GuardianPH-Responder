@@ -35,9 +35,16 @@ export const updateResponderStatus = async (
   incidentId: string,
   status: "enroute" | "onscene" | "facility" | "rtb"
 ): Promise<any> => {
-  return updateIncident(incidentId, {
+  const updateData: any = {
     responderStatus: status,
-  });
+  };
+  
+  // Set responderNotification to "unread" when status is "onscene"
+  if (status === "onscene") {
+    updateData.responderNotification = "unread";
+  }
+  
+  return updateIncident(incidentId, updateData);
 };
 
 // request close incident

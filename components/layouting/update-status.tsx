@@ -106,10 +106,19 @@ export default function UpdateStatusModal({
           type: "success",
           text1: "Successfully Updated Status to " + status,
         });
-        await setCurrentIncident({
+        
+        // Update local state with new responderStatus and responderNotification
+        const updatedIncident = {
           ...incidentState,
           responderStatus: statusMap[status],
-        });
+        };
+        
+        // Set responderNotification to "unread" when status is "onscene"
+        if (status === "onscene") {
+          updatedIncident.responderNotification = "unread";
+        }
+        
+        await setCurrentIncident(updatedIncident);
       }
     } catch (error) {
       console.error("Error updating status:", error);
